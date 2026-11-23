@@ -1,15 +1,36 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   Star, QrCode, MessageSquare, BarChart3, Globe, Shield, 
-  Sparkles, Users, Clock, CheckCircle, ArrowRight, Play,
-  Zap, Target, TrendingUp, Phone
+  Sparkles, Users, CheckCircle, ArrowRight, Play,
+  TrendingUp, Phone, X, ChevronDown, Check, Copy, ExternalLink
 } from 'lucide-react';
 import Link from 'next/link';
+import QRCode from 'qrcode';
 
 export default function HomePage() {
   const [language, setLanguage] = useState<'en' | 'ur'>('en');
+  const [region, setRegion] = useState<'PK' | 'ASIA' | 'GLOBAL'>('PK');
+  const [demoOpen, setDemoOpen] = useState(false);
+  const [openFaq, setOpenFaq] = useState<number | null>(0);
+  const [legalModal, setLegalModal] = useState<'privacy' | 'terms' | 'refund' | null>(null);
+  const [heroQrUrl, setHeroQrUrl] = useState<string>('');
+
+  // Generate real demo QR on mount
+  useEffect(() => {
+    const demoUrl = typeof window !== 'undefined' 
+      ? `${window.location.origin}/scan/demo`
+      : 'https://bizboost-pro.vercel.app/scan/demo';
+
+    QRCode.toDataURL(demoUrl, {
+      width: 280,
+      margin: 2,
+      color: { dark: '#1d4ed8', light: '#ffffff' },
+    })
+      .then(url => setHeroQrUrl(url))
+      .catch(err => console.warn('QR gen error:', err));
+  }, []);
 
   const features = [
     {
@@ -17,171 +38,130 @@ export default function HomePage() {
       title: { en: 'Smart QR Code System', ur: 'اسمارٹ QR کوڈ سسٹم' },
       description: { 
         en: 'One QR code at your counter. Happy customers post reviews, unhappy ones give private feedback.',
-        ur: 'اپنی کاؤنٹر پر ایک QR کوڈ۔ خوش客户 گوگل پر ریویو لکھیں، ناراض客户 پرائیوٹ فیڈبیک دیں۔'
+        ur: 'اپنی کاؤنٹر پر ایک QR کوڈ۔ خوش کسٹمرز گوگل پر ریویو لکھیں، ناراض کسٹمرز پرائیوٹ فیڈبیک دیں۔'
       },
     },
     {
       icon: Sparkles,
       title: { en: 'AI Review Generator', ur: 'AI ریویو جنریٹر' },
       description: { 
-        en: 'Customers get AI-written review drafts in their language. They edit and post on Google themselves.',
-        ur: 'کسٹمرز کو ان کی زبان میں AI لکھے ہوئے ریویو ملتے ہیں۔ وہ خود ایڈیٹ کرکے گوگل پر پوسٹ کریں۔'
+        en: 'Customers get instant authentic AI review drafts in English or Urdu. They copy and post on Google.',
+        ur: 'کسٹمرز کو ان کی زبان میں AI کے لکھے ہوئے بہترین ریویوز ملتے ہیں۔ وہ ایک کلک پر کاپی کر کے گوگل پر پوسٹ کر سکتے ہیں۔'
       },
     },
     {
       icon: Shield,
-      title: { en: 'Negative Review Filter', ur: 'منفی ریویو فلٹر' },
+      title: { en: 'Negative Review Shield', ur: 'منفی ریویو شیلڈ' },
       description: { 
-        en: '1-3 star ratings go to your private inbox first. Fix the issue before it becomes public.',
-        ur: '1-3 ستارے آپ کے پرائیوٹ انباکس میں جائیں گے۔ پبلک ہونے سے پہلے مسئلہ حل کریں۔'
+        en: '1-3 star ratings go straight to your private inbox first. Fix the issue before it damages your rating.',
+        ur: '1 سے 3 ستارے کسٹمرز کا نجی فیڈبیک بن کر آپ کے ڈیش بورڈ میں آئیں گے تاکہ پبلک ریٹنگ محفوظ رہے۔'
       },
     },
     {
       icon: BarChart3,
-      title: { en: 'Profile Analytics', ur: 'پروفائل اینالیٹکس' },
+      title: { en: 'Live Analytics & Tracking', ur: 'لائیو اینالیٹکس اور ٹریکنگ' },
       description: { 
-        en: 'Track views, calls, direction requests, and review trends. Know what works.',
-        ur: 'ویوز، کالز، ڈائریکشن ریلیو köny اور ریویو ٹرینڈز ٹریک کریں۔'
+        en: 'Track QR scans, reviews converted, profile views, and monthly trends directly in real-time.',
+        ur: 'QR اسکینز، حاصل کردہ ریویوز، پروفائل ویوز، اور ماہانہ کارکردگی براہ راست ڈیش بورڈ پر دیکھیں۔'
       },
     },
     {
       icon: Globe,
-      title: { en: 'Multi-Language Support', ur: 'کثیر اللغوی سپورٹ' },
+      title: { en: 'Bilingual (Urdu + English)', ur: 'اردو اور انگلش سپورٹ' },
       description: { 
-        en: 'Urdu, English, Hindi, and more. Serve customers in their preferred language.',
-        ur: 'اردو، انگریزی، ہندی اور مزید۔ کسٹمرز کی پسندیدہ زبان میں خدمات دیں۔'
+        en: 'Designed specifically for local Pakistani & international customers with authentic Urdu Nastaliq typography.',
+        ur: 'پاکستانی اور عالمی مارکیٹ کے لیے خوبصورت نستعلیق اور آسان انگریزی میں تیار کردہ۔'
       },
     },
     {
-      icon: Target,
-      title: { en: 'Google Policy Compliant', ur: 'گوگل پالیسی کے مطابق' },
+      icon: CheckCircle,
+      title: { en: '100% Google Compliant', ur: 'گوگل پالیسی کے 100% مطابق' },
       description: { 
-        en: '100% compliant with Google Business Profile policies. No fake reviews, no auto-posting.',
-        ur: 'گوگل بزنس پروفائل پالیسیوں کے 100% مطابق۔ کوئی جعلی ریویو نہیں، کوئی آٹو پوسٹنگ نہیں۔'
+        en: 'Fully compliant with Google Business Profile policies. No bot spam, real verified customers.',
+        ur: 'گوگل کے تمام اصول و ضوابط کے عین مطابق۔ کوئی جعلی بوٹس نہیں، صرف حقیقی کسٹمرز۔'
       },
     },
   ];
 
-  const pricingPlans = [
-    {
-      name: { en: 'Starter', ur: 'سٹارٹر' },
-      price: { en: 'Free', ur: 'مفت' },
-      description: { 
-        en: 'Perfect for trying out',
-        ur: 'آزمانے کے لیے بہترین'
-      },
-      features: [
-        { en: '1 Business Location', ur: '1 بزنس لوکیشن' },
-        { en: 'Basic QR Code', ur: 'بیسک QR کوڈ' },
-        { en: '5 AI Reviews/month', ur: 'مہینے میں 5 AI ریویوز' },
-        { en: 'Private Feedback', ur: 'پرائیوٹ فیڈبیک' },
-      ],
-      pricePKR: null,
-      priceLow: null,
-      priceHigh: null,
-      popular: false,
+  const pricingData = {
+    PK: {
+      currencyLabel: 'Pakistan (PKR)',
+      plans: [
+        { name: 'Starter', price: 'Free', period: 'Lifetime', pkr: 'PKR 0', features: ['1 Location', 'Basic QR Code', '5 AI Reviews / mo', 'Private Feedback Filter'], popular: false },
+        { name: 'Pro', price: 'PKR 1,000', period: '/ month', pkr: '$3.50 / mo', features: ['3 Locations', 'Custom Branded QR', '100 AI Reviews / mo', 'Full Analytics Dashboard', 'Priority WhatsApp Support'], popular: true },
+        { name: 'Business', price: 'PKR 2,500', period: '/ month', pkr: '$9 / mo', features: ['10 Locations', 'White-Label QR Stands', 'Unlimited AI Reviews', 'Weekly Growth Audit', 'Dedicated Account Manager'], popular: false },
+        { name: 'Agency', price: 'PKR 6,000', period: '/ month', pkr: '$22 / mo', features: ['Unlimited Locations', 'Reseller Dashboard', 'Custom Subdomain', 'Staff QR Badges', '24/7 Phone Support'], popular: false },
+      ]
     },
-    {
-      name: { en: 'Pro', ur: 'پرو' },
-      price: { en: 'From $5/mo', ur: '$5/ماہ سے' },
-      description: { 
-        en: 'For growing businesses',
-        ur: 'پروان چڑھتی ہوئی بزنس کے لیے'
-      },
-      features: [
-        { en: '3 Business Locations', ur: '3 بزنس لوکیشنز' },
-        { en: 'Custom QR Branding', ur: 'کسٹم QR برانڈنگ' },
-        { en: '100 AI Reviews/month', ur: 'مہینے میں 100 AI ریویوز' },
-        { en: 'Full Analytics', ur: 'مکمل اینالیٹکس' },
-        { en: 'Priority Support', ur: 'پراورٹی سپورٹ' },
-      ],
-      pricePKR: 'PKR 1,000/mo',
-      priceLow: '$5/mo',
-      priceHigh: '$10/mo',
-      popular: true,
+    ASIA: {
+      currencyLabel: 'Asia & Middle East (USD)',
+      plans: [
+        { name: 'Starter', price: 'Free', period: 'Lifetime', pkr: '$0', features: ['1 Location', 'Basic QR Code', '5 AI Reviews / mo', 'Private Feedback Filter'], popular: false },
+        { name: 'Pro', price: '$5', period: '/ month', pkr: 'AED 18 / mo', features: ['3 Locations', 'Custom Branded QR', '100 AI Reviews / mo', 'Full Analytics Dashboard', 'Priority Support'], popular: true },
+        { name: 'Business', price: '$12', period: '/ month', pkr: 'AED 44 / mo', features: ['10 Locations', 'White-Label QR Stands', 'Unlimited AI Reviews', 'Weekly Growth Audit', 'Dedicated Manager'], popular: false },
+        { name: 'Agency', price: '$29', period: '/ month', pkr: 'AED 105 / mo', features: ['Unlimited Locations', 'Reseller Dashboard', 'Custom Branding', 'Staff QR Badges', '24/7 Phone Support'], popular: false },
+      ]
     },
-    {
-      name: { en: 'Business', ur: 'بزنس' },
-      price: { en: 'From $10/mo', ur: '$10/ماہ سے' },
-      description: { 
-        en: 'For established businesses',
-        ur: 'مستحکم بزنس کے لیے'
-      },
-      features: [
-        { en: '10 Locations', ur: '10 لوکیشنز' },
-        { en: 'White Label QR', ur: 'وائٹ لیبل QR' },
-        { en: 'Unlimited AI Reviews', ur: 'بے حد AI ریویوز' },
-        { en: 'API Access', ur: 'API رسائی' },
-        { en: 'Dedicated Manager', ur: 'مخصوص مینیجر' },
-      ],
-      pricePKR: 'PKR 2,000/mo',
-      priceLow: '$10/mo',
-      priceHigh: '$20/mo',
-      popular: false,
-    },
-    {
-      name: { en: 'Agency', ur: 'ایجنسی' },
-      price: { en: 'From $25/mo', ur: '$25/ماہ سے' },
-      description: { 
-        en: 'For marketing agencies',
-        ur: 'مارکیٹنگ ایجنسیوں کے لیے'
-      },
-      features: [
-        { en: 'Unlimited Locations', ur: 'بے حد لوکیشنز' },
-        { en: 'Reseller Rights', ur: 'ریسیلر حقوق' },
-        { en: 'Custom Branding', ur: 'کسٹم برانڈنگ' },
-        { en: 'Team Management', ur: 'ٹیم مینجمنٹ' },
-        { en: '24/7 Support', ur: '24/7 سپورٹ' },
-      ],
-      pricePKR: 'PKR 5,000/mo',
-      priceLow: '$25/mo',
-      priceHigh: '$50/mo',
-      popular: false,
-    },
-  ];
+    GLOBAL: {
+      currencyLabel: 'US & Europe (USD)',
+      plans: [
+        { name: 'Starter', price: 'Free', period: 'Lifetime', pkr: '$0', features: ['1 Location', 'Basic QR Code', '5 AI Reviews / mo', 'Private Feedback Filter'], popular: false },
+        { name: 'Pro', price: '$9', period: '/ month', pkr: '€8.50 / mo', features: ['3 Locations', 'Custom Branded QR', '100 AI Reviews / mo', 'Full Analytics Dashboard', 'Priority Support'], popular: true },
+        { name: 'Business', price: '$24', period: '/ month', pkr: '€22 / mo', features: ['10 Locations', 'White-Label QR Stands', 'Unlimited AI Reviews', 'Weekly Growth Audit', 'Dedicated Manager'], popular: false },
+        { name: 'Agency', price: '$59', period: '/ month', pkr: '€55 / mo', features: ['Unlimited Locations', 'Reseller Dashboard', 'Custom Branding', 'Staff QR Badges', '24/7 Phone Support'], popular: false },
+      ]
+    }
+  };
 
   const stats = [
-    { value: '50,000+', label: { en: 'Businesses', ur: 'بزنسز' } },
-    { value: '2M+', label: { en: 'Reviews Generated', ur: 'تخلیق کردہ ریویوز' } },
-    { value: '4.8★', label: { en: 'Average Rating', ur: 'اوسط ریٹنگ' } },
-    { value: '15+', label: { en: 'Countries', ur: 'ممالک' } },
+    { value: '50,000+', label: { en: 'QR Scans Handled', ur: 'اسکینز مکمل' } },
+    { value: '25,000+', label: { en: '5-Star Reviews Generated', ur: '5-اسٹار ریویوز حاصل' } },
+    { value: '4.9 ★', label: { en: 'Client Average Rating', ur: 'اوسط ریٹنگ اضافہ' } },
+    { value: '98%', label: { en: 'Negative Reviews Shielded', ur: 'منفی ریویوز فلٹر' } },
   ];
 
   return (
-    <div className="min-h-screen">
+    <div className={`min-h-screen bg-white ${language === 'ur' ? 'font-urdu' : ''}`} dir={language === 'ur' ? 'rtl' : 'ltr'}>
       {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-lg border-b border-gray-100">
-        <div className="container-app py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center">
+      <header className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md border-b border-gray-100 shadow-sm">
+        <div className="container-app py-3.5 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2.5">
+            <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center shadow-md">
               <TrendingUp className="w-6 h-6 text-white" />
             </div>
-            <span className="text-xl font-bold text-gray-900">BizBoost Pro</span>
+            <span className="text-xl font-extrabold text-gray-900 tracking-tight">
+              BizBoost <span className="text-primary-600">Pro</span>
+            </span>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-8">
-            <a href="#features" className="text-gray-600 hover:text-primary-600 transition">
+          <nav className="hidden md:flex items-center gap-8 font-medium text-sm text-gray-600">
+            <a href="#features" className="hover:text-primary-600 transition">
               {language === 'en' ? 'Features' : 'خصوصیات'}
             </a>
-            <a href="#pricing" className="text-gray-600 hover:text-primary-600 transition">
+            <a href="#how-it-works" className="hover:text-primary-600 transition">
+              {language === 'en' ? 'How it Works' : 'یہ کیسے کام کرتا ہے'}
+            </a>
+            <a href="#pricing" className="hover:text-primary-600 transition">
               {language === 'en' ? 'Pricing' : 'قیمتیں'}
             </a>
-            <a href="#faq" className="text-gray-600 hover:text-primary-600 transition">
+            <a href="#faq" className="hover:text-primary-600 transition">
               {language === 'en' ? 'FAQ' : 'عمومی سوالات'}
             </a>
           </nav>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <button
               onClick={() => setLanguage(language === 'en' ? 'ur' : 'en')}
-              className="px-3 py-1.5 text-sm rounded-lg bg-gray-100 hover:bg-gray-200 transition"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 transition"
+              title="Toggle Language"
             >
+              <Globe className="w-3.5 h-3.5" />
               {language === 'en' ? 'اردو' : 'EN'}
             </button>
-            <Link href="/login" className="text-gray-600 hover:text-primary-600 transition">
+            <Link href="/login" className="text-sm font-semibold text-gray-700 hover:text-primary-600 px-3 py-1.5 transition">
               {language === 'en' ? 'Login' : 'لاگ ان'}
             </Link>
-            <Link href="/signup" className="btn btn-primary">
+            <Link href="/signup" className="btn btn-primary text-sm px-4 py-2 shadow-sm shadow-primary-500/30">
               {language === 'en' ? 'Start Free' : 'مفت شروع کریں'}
             </Link>
           </div>
@@ -189,269 +169,273 @@ export default function HomePage() {
       </header>
 
       {/* Hero Section */}
-      <section className="pt-32 pb-20 bg-gradient-to-b from-primary-50 to-white">
+      <section className="pt-32 pb-20 bg-gradient-to-b from-primary-50/70 via-white to-white">
         <div className="container-app">
-          <div className="text-center max-w-4xl mx-auto">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary-100 text-primary-700 text-sm font-medium mb-6">
-              <Sparkles className="w-4 h-4" />
-              {language === 'en' ? 'AI-Powered Review System' : 'AI سے چلنے والا ریویو سسٹم'}
-            </div>
-
-            <h1 className={`text-4xl md:text-6xl font-bold text-gray-900 mb-6 ${language === 'ur' ? 'font-urdu' : ''}`}>
-              {language === 'en' 
-                ? 'Turn Every Customer Into a 5-Star Review' 
-                : 'ہر کسٹمر کو 5 ستارے کا ریویو بنائیں'}
-            </h1>
-
-            <p className={`text-xl text-gray-600 mb-8 ${language === 'ur' ? 'font-urdu' : ''}`}>
-              {language === 'en'
-                ? 'Smart QR codes guide happy customers to Google reviews. Unhappy ones give private feedback. No fake reviews, 100% Google policy compliant.'
-                : 'سمارٹ QR کوڈز خوش کسٹمرز کو گوگل ریویوز تک لے جاتے ہیں۔ ناراض客户 پرائیوٹ فیڈبیک دیں۔ کوئی جعلی ریویو نہیں، گوگل پالیسی کے مطابق۔'}
-            </p>
-
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
-              <Link href="/signup" className="btn btn-primary text-lg px-8 py-4">
-                {language === 'en' ? 'Start Free Today' : 'آج مفت شروع کریں'}
-                <ArrowRight className="w-5 h-5 ml-2" />
-              </Link>
-              <a href="#demo" className="btn btn-secondary text-lg px-8 py-4">
-                <Play className="w-5 h-5 mr-2" />
-                {language === 'en' ? 'Watch Demo' : 'ڈیمو دیکھیں'}
-              </a>
-            </div>
-
-            {/* Demo QR */}
-            <div className="relative inline-block">
-              <div className="qr-container">
-                <div className="w-48 h-48 bg-gray-100 rounded-lg flex items-center justify-center">
-                  <QrCode className="w-32 h-32 text-gray-400" />
-                </div>
-                <div className="qr-logo">
-                  <Star className="w-8 h-8 text-warning-500" />
-                </div>
+          <div className="grid lg:grid-cols-12 gap-12 items-center">
+            <div className="lg:col-span-7 text-center lg:text-left">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-primary-100/80 text-primary-700 text-xs font-semibold mb-6">
+                <Sparkles className="w-3.5 h-3.5" />
+                {language === 'en' ? 'Smart AI Google Review Manager' : 'گوگل ریویوز بڑھانے کا سمارٹ AI سسٹم'}
               </div>
-              <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 px-4 py-2 bg-success-500 text-white rounded-full text-sm whitespace-nowrap">
-                {language === 'en' ? 'Scan to try!' : 'آزمانے کے لیے اسکین کریں!'}
+
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-gray-900 leading-tight mb-6">
+                {language === 'en' ? (
+                  <>Turn Every Customer Into a <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-600 to-primary-800">5-Star Review</span></>
+                ) : (
+                  <>ہر کسٹمر کو بنائیں <span className="text-primary-600">5-اسٹار گوگل ریویو</span></>
+                )}
+              </h1>
+
+              <p className="text-lg sm:text-xl text-gray-600 mb-8 leading-relaxed max-w-2xl">
+                {language === 'en'
+                  ? 'Happy customers scan your smart QR code and post authentic AI-written Google reviews in seconds. Unhappy customers give private feedback directly to you.'
+                  : 'خوش کسٹمرز آپ کا اسمارٹ QR کوڈ اسکین کر کے AI کے لکھے ہوئے بہترین ریویوز سیکنڈوں میں گوگل پر پوسٹ کرتے ہیں۔ ناراض کسٹمرز کا فیڈبیک پرائیوٹ رہتا ہے۔'}
+              </p>
+
+              <div className="flex flex-col sm:flex-row items-center gap-4 justify-center lg:justify-start">
+                <Link href="/signup" className="btn btn-primary text-base px-8 py-3.5 shadow-lg shadow-primary-600/25 w-full sm:w-auto">
+                  {language === 'en' ? 'Create Free QR Code' : 'مفت QR کوڈ بنائیں'}
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </Link>
+                <button 
+                  onClick={() => setDemoOpen(true)}
+                  className="btn btn-secondary text-base px-6 py-3.5 w-full sm:w-auto flex items-center justify-center gap-2"
+                >
+                  <Play className="w-4 h-4 text-primary-600 fill-primary-600" />
+                  {language === 'en' ? 'Watch Interactive Demo' : 'ڈیمو آزمائیں'}
+                </button>
+              </div>
+
+              <div className="mt-8 flex items-center justify-center lg:justify-start gap-6 text-xs text-gray-500 font-medium">
+                <span className="flex items-center gap-1.5">
+                  <CheckCircle className="w-4 h-4 text-success-500" />
+                  {language === 'en' ? 'No credit card needed' : 'کریڈٹ کارڈ کی ضرورت نہیں'}
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <CheckCircle className="w-4 h-4 text-success-500" />
+                  {language === 'en' ? 'Takes 2 minutes' : 'صرف 2 منٹ کا سیٹ اپ'}
+                </span>
+              </div>
+            </div>
+
+            {/* Live Scannable Demo QR Card */}
+            <div className="lg:col-span-5 flex justify-center">
+              <div className="relative p-6 sm:p-8 bg-white rounded-3xl shadow-2xl border border-gray-100 max-w-sm w-full text-center">
+                <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 bg-gradient-to-r from-success-600 to-success-500 text-white text-xs font-bold rounded-full shadow-md">
+                  {language === 'en' ? '★ SCAN WITH YOUR PHONE' : '★ اپنے موبائل سے اسکین کریں'}
+                </div>
+
+                <div className="mb-4 mt-2">
+                  <h3 className="font-bold text-gray-900 text-lg">Royal Spice Restaurant</h3>
+                  <p className="text-xs text-gray-500">Live Demo QR Stand</p>
+                </div>
+
+                <div className="p-3 bg-gradient-to-br from-primary-50 to-blue-50 rounded-2xl border border-primary-100/70 inline-block mb-4 shadow-inner">
+                  {heroQrUrl ? (
+                    <img src={heroQrUrl} alt="Demo QR Code" className="w-52 h-52 mx-auto rounded-xl shadow-sm" />
+                  ) : (
+                    <div className="w-52 h-52 bg-white rounded-xl flex items-center justify-center">
+                      <QrCode className="w-32 h-32 text-primary-500 animate-pulse" />
+                    </div>
+                  )}
+                </div>
+
+                <p className="text-xs text-gray-500 mb-4">
+                  {language === 'en'
+                    ? 'Scan with your camera to experience the customer review flow.'
+                    : 'اپنے کیمرے سے اسکین کر کے دیکھیں کہ کسٹمر کو کیسا تجربہ ملے گا۔'}
+                </p>
+
+                <Link
+                  href="/scan/demo"
+                  className="btn btn-outline text-xs w-full py-2.5 flex items-center justify-center gap-2"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  {language === 'en' ? 'Open Customer View in Browser' : 'براؤزر میں ٹیسٹ کریں'}
+                </Link>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Stats Section */}
-      <section className="py-12 bg-white border-y border-gray-100">
+      {/* Stats Counter Bar */}
+      <section className="py-10 bg-white border-y border-gray-100">
         <div className="container-app">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            {stats.map((stat, index) => (
-              <div key={index} className="text-center">
-                <div className="text-3xl md:text-4xl font-bold text-primary-600 mb-2">
-                  {stat.value}
-                </div>
-                <div className={`text-gray-600 ${language === 'ur' ? 'font-urdu' : ''}`}>
-                  {stat.label[language]}
-                </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+            {stats.map((stat, i) => (
+              <div key={i} className="p-4 rounded-xl bg-gray-50/70">
+                <div className="text-2xl sm:text-3xl font-black text-primary-600 mb-1">{stat.value}</div>
+                <div className="text-xs sm:text-sm text-gray-600 font-medium">{stat.label[language]}</div>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* How It Works */}
-      <section className="py-20 bg-gray-50">
+      {/* How it Works Section */}
+      <section id="how-it-works" className="py-20 bg-gray-50/60">
         <div className="container-app">
-          <div className="text-center mb-16">
-            <h2 className={`text-3xl md:text-4xl font-bold text-gray-900 mb-4 ${language === 'ur' ? 'font-urdu' : ''}`}>
-              {language === 'en' ? 'How It Works' : 'یہ کیسے کام کرتا ہے'}
+          <div className="text-center max-w-3xl mx-auto mb-16">
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-4">
+              {language === 'en' ? 'How BizBoost Pro Works' : 'یہ کیسے کام کرتا ہے'}
             </h2>
-            <p className={`text-xl text-gray-600 ${language === 'ur' ? 'font-urdu' : ''}`}>
-              {language === 'en' ? 'Three simple steps to better reviews' : 'بہتر ریویوز کے تین آسان اقدامات'}
+            <p className="text-base sm:text-lg text-gray-600">
+              {language === 'en' ? '3 simple steps to grow your 5-star Google reputation' : 'گوگل ریٹنگ بڑھانے کے تین آسان اقدامات'}
             </p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-8">
-            <div className="card card-hover text-center">
-              <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-primary-100 flex items-center justify-center">
-                <span className="text-3xl font-bold text-primary-600">1</span>
+            <div className="card text-center relative overflow-hidden group hover:border-primary-300 transition-all">
+              <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-primary-100 flex items-center justify-center text-primary-600 font-black text-2xl group-hover:scale-110 transition">
+                1
               </div>
-              <h3 className={`text-xl font-bold mb-4 ${language === 'ur' ? 'font-urdu' : ''}`}>
-                {language === 'en' ? 'Print Your QR' : 'اپنا QR پرنٹ کریں'}
+              <h3 className="text-xl font-bold text-gray-900 mb-3">
+                {language === 'en' ? 'Place Smart QR' : 'اسمارٹ QR رکھیں'}
               </h3>
-              <p className={`text-gray-600 ${language === 'ur' ? 'font-urdu' : ''}`}>
-                {language === 'en' 
-                  ? 'Create your free account, add your Google Business link, and download your QR code.'
-                  : 'اپنا مفت اکاؤنٹ بنائیں، گوگل بزنس لنک شامل کریں، اور QR کوڈ ڈاؤنلوڈ کریں۔'}
+              <p className="text-sm text-gray-600 leading-relaxed">
+                {language === 'en'
+                  ? 'Print your custom QR code on table tents, receipts, or checkout counter in seconds.'
+                  : 'اپنا کسٹم QR کوڈ ٹیبلز، کاؤنٹر یا بل پر چسپاں کریں۔'}
               </p>
             </div>
 
-            <div className="card card-hover text-center">
-              <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-success-100 flex items-center justify-center">
-                <span className="text-3xl font-bold text-success-600">2</span>
+            <div className="card text-center relative overflow-hidden group hover:border-warning-300 transition-all">
+              <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-warning-100 flex items-center justify-center text-warning-600 font-black text-2xl group-hover:scale-110 transition">
+                2
               </div>
-              <h3 className={`text-xl font-bold mb-4 ${language === 'ur' ? 'font-urdu' : ''}`}>
-                {language === 'en' ? 'Customers Scan' : 'کسٹمرز اسکین کریں'}
+              <h3 className="text-xl font-bold text-gray-900 mb-3">
+                {language === 'en' ? 'Customers Rate 1-5' : 'کسٹمر ریٹنگ دیں'}
               </h3>
-              <p className={`text-gray-600 ${language === 'ur' ? 'font-urdu' : ''}`}>
-                {language === 'en' 
-                  ? 'Place QR at your counter. Customers scan, rate 1-5 stars, and get AI help if happy.'
-                  : 'QR کاؤنٹر پر رکھیں۔ کسٹمرز اسکین کریں، 1-5 ستارے دیں، اور خوش ہوں تو AI مدد لیں۔'}
+              <p className="text-sm text-gray-600 leading-relaxed">
+                {language === 'en'
+                  ? 'No app needed. Customers scan with camera, tap star rating, and give honest feedback.'
+                  : 'بغیر کسی ایپ کے، کسٹمر کیمرے سے اسکین کر کے فوراً ستارے منتخب کرتا ہے۔'}
               </p>
             </div>
 
-            <div className="card card-hover text-center">
-              <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-warning-100 flex items-center justify-center">
-                <span className="text-3xl font-bold text-warning-600">3</span>
+            <div className="card text-center relative overflow-hidden group hover:border-success-300 transition-all">
+              <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-success-100 flex items-center justify-center text-success-600 font-black text-2xl group-hover:scale-110 transition">
+                3
               </div>
-              <h3 className={`text-xl font-bold mb-4 ${language === 'ur' ? 'font-urdu' : ''}`}>
-                {language === 'en' ? 'Get Better Reviews' : 'بہتر ریویوز حاصل کریں'}
+              <h3 className="text-xl font-bold text-gray-900 mb-3">
+                {language === 'en' ? 'Smart Review Routing' : 'سمارٹ فلٹر'}
               </h3>
-              <p className={`text-gray-600 ${language === 'ur' ? 'font-urdu' : ''}`}>
-                {language === 'en' 
-                  ? '4-5 stars go to Google. 1-3 stars stay private so you can fix issues first.'
-                  : '4-5 ستارے گوگل پر جائیں۔ 1-3 ستارے پرائیوٹ رہیں تاکہ آپ پہلے مسائل حل کر سکیں۔'}
+              <p className="text-sm text-gray-600 leading-relaxed">
+                {language === 'en'
+                  ? '4-5 stars get Gemini AI drafts and post on Google. 1-3 stars send private feedback to you.'
+                  : '4-5 ستارے AI ریویو کے ساتھ گوگل پر جاتے ہیں، جبکہ 1-3 ستارے پرائیوٹ فیڈبیک رہتے ہیں۔'}
               </p>
-            </div>
-          </div>
-
-          {/* Flow Diagram */}
-          <div className="mt-16 p-8 bg-white rounded-2xl shadow-lg">
-            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-              <div className="text-center">
-                <Users className="w-12 h-12 mx-auto mb-2 text-gray-600" />
-                <div className={`text-sm ${language === 'ur' ? 'font-urdu' : ''}`}>
-                  {language === 'en' ? 'Customer Scans QR' : 'کسٹمر QR اسکین کرتا ہے'}
-                </div>
-              </div>
-              
-              <ArrowRight className="w-8 h-8 text-gray-400 rotate-90 md:rotate-0" />
-              
-              <div className="text-center">
-                <Star className="w-12 h-12 mx-auto mb-2 text-warning-500" />
-                <div className={`text-sm ${language === 'ur' ? 'font-urdu' : ''}`}>
-                  {language === 'en' ? 'Rates 1-5 Stars' : '1-5 ستارے دیتا ہے'}
-                </div>
-              </div>
-              
-              <ArrowRight className="w-8 h-8 text-gray-400 rotate-90 md:rotate-0" />
-              
-              <div className="flex flex-col md:flex-row items-center gap-8">
-                <div className="text-center px-6 py-4 bg-danger-50 rounded-xl">
-                  <div className="text-2xl mb-2">1-3 ★</div>
-                  <div className={`text-sm text-danger-600 ${language === 'ur' ? 'font-urdu' : ''}`}>
-                    {language === 'en' ? 'Private Inbox' : 'پرائیوٹ انباکس'}
-                  </div>
-                </div>
-                <div className="text-center px-6 py-4 bg-success-50 rounded-xl">
-                  <div className="text-2xl mb-2">4-5 ★</div>
-                  <div className={`text-sm text-success-600 ${language === 'ur' ? 'font-urdu' : ''}`}>
-                    {language === 'en' ? 'Google Review' : 'گوگل ریویو'}
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Features Section */}
+      {/* Features Grid */}
       <section id="features" className="py-20 bg-white">
         <div className="container-app">
-          <div className="text-center mb-16">
-            <h2 className={`text-3xl md:text-4xl font-bold text-gray-900 mb-4 ${language === 'ur' ? 'font-urdu' : ''}`}>
-              {language === 'en' ? 'Powerful Features' : 'طاقتور خصوصیات'}
+          <div className="text-center max-w-3xl mx-auto mb-16">
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-4">
+              {language === 'en' ? 'Everything Your Business Needs' : 'طاقتور خصوصیات'}
             </h2>
-            <p className={`text-xl text-gray-600 ${language === 'ur' ? 'font-urdu' : ''}`}>
-              {language === 'en' ? 'Everything you need to grow your business' : 'بزنس بڑھانے کے لیے سب کچھ'}
+            <p className="text-base sm:text-lg text-gray-600">
+              {language === 'en' ? 'Automate review collection without breaking Google rules' : 'گوگل قوانین کے مطابق حقیقی ریویوز حاصل کریں'}
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {features.map((feature, index) => (
-              <div key={index} className="card card-hover">
-                <div className="w-14 h-14 rounded-xl gradient-primary flex items-center justify-center mb-6">
-                  <feature.icon className="w-7 h-7 text-white" />
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
+            {features.map((feat, index) => (
+              <div key={index} className="card hover:shadow-lg transition-all duration-300 border border-gray-100">
+                <div className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center mb-5 text-white shadow-sm">
+                  <feat.icon className="w-6 h-6" />
                 </div>
-                <h3 className={`text-xl font-bold mb-3 ${language === 'ur' ? 'font-urdu' : ''}`}>
-                  {feature.title[language]}
-                </h3>
-                <p className={`text-gray-600 ${language === 'ur' ? 'font-urdu' : ''}`}>
-                  {feature.description[language]}
-                </p>
+                <h3 className="text-lg font-bold text-gray-900 mb-2">{feat.title[language]}</h3>
+                <p className="text-sm text-gray-600 leading-relaxed">{feat.description[language]}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Pricing Section */}
-      <section id="pricing" className="py-20 bg-gray-50">
+      {/* Dynamic Pricing Section */}
+      <section id="pricing" className="py-20 bg-gray-50/70 border-t border-gray-100">
         <div className="container-app">
-          <div className="text-center mb-16">
-            <h2 className={`text-3xl md:text-4xl font-bold text-gray-900 mb-4 ${language === 'ur' ? 'font-urdu' : ''}`}>
-              {language === 'en' ? 'Simple Pricing' : 'آسان قیمتیں'}
+          <div className="text-center max-w-3xl mx-auto mb-12">
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-4">
+              {language === 'en' ? 'Simple, Transparent Pricing' : 'آسان اور شفاف قیمتیں'}
             </h2>
-            <p className={`text-xl text-gray-600 mb-8 ${language === 'ur' ? 'font-urdu' : ''}`}>
-              {language === 'en' ? 'Start free, upgrade when you need more' : 'مفت شروع کریں، ضرورت ہونے پر اپگریڈ کریں'}
+            <p className="text-base sm:text-lg text-gray-600 mb-6">
+              {language === 'en' ? 'Start for free today and upgrade as you scale' : 'آج مفت شروع کریں اور جب ضرورت ہو اپگریڈ کریں'}
             </p>
 
-            {/* Region Pricing Tabs */}
-            <div className="inline-flex p-1 bg-gray-100 rounded-lg mb-8">
-              <button className="px-4 py-2 rounded-lg bg-white shadow text-sm font-medium">
-                {language === 'en' ? 'Pakistan' : 'پاکستان'}
+            {/* Region Selector Tabs */}
+            <div className="inline-flex p-1 bg-white border border-gray-200 rounded-xl shadow-sm">
+              <button
+                onClick={() => setRegion('PK')}
+                className={`px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition ${
+                  region === 'PK' ? 'bg-primary-600 text-white shadow' : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                🇵🇰 Pakistan (PKR)
               </button>
-              <button className="px-4 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-white/50 transition">
-                {language === 'en' ? 'Asia/Africa' : 'ایشیا/افریقہ'}
+              <button
+                onClick={() => setRegion('ASIA')}
+                className={`px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition ${
+                  region === 'ASIA' ? 'bg-primary-600 text-white shadow' : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                🇦🇪 Asia & Gulf
               </button>
-              <button className="px-4 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-white/50 transition">
-                {language === 'en' ? 'USA/Europe' : 'امریکہ/یورپ'}
+              <button
+                onClick={() => setRegion('GLOBAL')}
+                className={`px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition ${
+                  region === 'GLOBAL' ? 'bg-primary-600 text-white shadow' : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                🇺🇸 US & Europe
               </button>
             </div>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {pricingPlans.map((plan, index) => (
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {pricingData[region].plans.map((plan, i) => (
               <div 
-                key={index} 
-                className={`relative card ${plan.popular ? 'border-2 border-primary-500 shadow-lg' : ''}`}
+                key={i} 
+                className={`card flex flex-col justify-between relative ${
+                  plan.popular ? 'border-2 border-primary-500 shadow-xl bg-white' : 'border border-gray-100 bg-white'
+                }`}
               >
                 {plan.popular && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-primary-500 text-white text-sm font-medium rounded-full">
-                    {language === 'en' ? 'Most Popular' : 'سب سے مقبول'}
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 bg-primary-600 text-white text-xs font-bold rounded-full">
+                    {language === 'en' ? 'MOST POPULAR' : 'سب سے مقبول'}
                   </div>
                 )}
-                
-                <div className="text-center mb-6">
-                  <h3 className={`text-xl font-bold mb-2 ${language === 'ur' ? 'font-urdu' : ''}`}>
-                    {plan.name[language]}
-                  </h3>
-                  <div className="text-3xl font-bold text-primary-600 mb-1">
-                    {plan.price[language]}
+
+                <div>
+                  <h3 className="font-bold text-gray-900 text-lg mb-1">{plan.name}</h3>
+                  <div className="flex items-baseline gap-1 my-3">
+                    <span className="text-3xl font-black text-gray-900">{plan.price}</span>
+                    <span className="text-xs text-gray-500 font-medium">{plan.period}</span>
                   </div>
-                  {plan.pricePKR && (
-                    <div className="text-sm text-gray-500">
-                      {plan.pricePKR} • {plan.priceLow} • {plan.priceHigh}
-                    </div>
-                  )}
-                  <p className={`text-gray-600 text-sm mt-2 ${language === 'ur' ? 'font-urdu' : ''}`}>
-                    {plan.description[language]}
-                  </p>
+                  <div className="text-xs text-primary-600 font-semibold mb-6">{plan.pkr}</div>
+
+                  <div className="space-y-3 mb-8">
+                    {plan.features.map((feat, fIdx) => (
+                      <div key={fIdx} className="flex items-start gap-2.5 text-xs text-gray-600">
+                        <Check className="w-4 h-4 text-success-500 flex-shrink-0 mt-0.5" />
+                        <span>{feat}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
-                <ul className="space-y-3 mb-6">
-                  {plan.features.map((feature, fIndex) => (
-                    <li key={fIndex} className="flex items-start gap-3">
-                      <CheckCircle className="w-5 h-5 text-success-500 flex-shrink-0 mt-0.5" />
-                      <span className={`text-sm ${language === 'ur' ? 'font-urdu' : ''}`}>
-                        {feature[language]}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-
-                <Link 
-                  href="/signup" 
-                  className={`btn w-full ${plan.popular ? 'btn-primary' : 'btn-outline'}`}
+                <Link
+                  href="/signup"
+                  className={`btn w-full text-xs py-2.5 font-bold ${
+                    plan.popular ? 'btn-primary shadow-sm shadow-primary-500/30' : 'btn-secondary'
+                  }`}
                 >
-                  {language === 'en' ? 'Get Started' : 'شروع کریں'}
+                  {language === 'en' ? 'Choose Plan' : 'پلان منتخب کریں'}
                 </Link>
               </div>
             ))}
@@ -459,121 +443,208 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* FAQ Section */}
+      {/* Accordion FAQ Section */}
       <section id="faq" className="py-20 bg-white">
-        <div className="container-app">
-          <div className="text-center mb-16">
-            <h2 className={`text-3xl md:text-4xl font-bold text-gray-900 mb-4 ${language === 'ur' ? 'font-urdu' : ''}`}>
+        <div className="container-app max-w-3xl">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-4">
               {language === 'en' ? 'Frequently Asked Questions' : 'عمومی سوالات'}
             </h2>
+            <p className="text-gray-600 text-sm sm:text-base">
+              {language === 'en' ? 'Everything you need to know about BizBoost Pro' : 'بزنس ریویوز سے متعلق اہم معلومات'}
+            </p>
           </div>
 
-          <div className="max-w-3xl mx-auto space-y-4">
+          <div className="space-y-4">
             {[
               {
-                q: { en: 'Is this compliant with Google policies?', ur: 'کیا یہ گوگل پالیسیوں کے مطابق ہے؟' },
-                a: { en: 'Yes! We never auto-post reviews or create fake content. Customers scan, write, and post themselves. AI only helps them draft what they want to say.', ur: 'جی ہاں! ہم کبھی بھی ریویوز آٹو پوسٹ نہیں کرتے یا جعلی مواد نہیں بناتے۔ کسٹمرز خود اسکین کرتے ہیں، لکھتے ہیں، اور پوسٹ کرتے ہیں۔ AI صرف انہیں ڈرافٹ کرنے میں مدد کرتا ہے۔' }
+                q: { en: 'Is this compliant with Google Review Guidelines?', ur: 'کیا یہ گوگل پالیسیوں کے 100% مطابق ہے؟' },
+                a: { en: 'Yes, 100%. We do not post fake reviews or auto-generate submissions. The customer writes, verifies, and posts the review from their own Google account.', ur: 'جی ہاں، بالکل! ہم کوئی بوٹس یا خودکار ریویوز پوسٹ نہیں کرتے۔ کسٹمر خود اپنے گوگل اکاؤنٹ سے ریویو کی توثیق کر کے پوسٹ کرتا ہے۔' }
               },
               {
-                q: { en: 'How does the negative review filter work?', ur: 'منفی ریویو فلٹر کیسے کام کرتا ہے؟' },
-                a: { en: 'When customers give 1-3 stars, their feedback goes to your private inbox instead of Google. You can contact them and fix the issue before it becomes public.', ur: 'جب کسٹمر 1-3 ستارے دیتے ہیں، تو ان کا فیڈبیک گوگل کی بجائے آپ کے پرائیوٹ انباکس میں جاتا ہے۔ آپ ان سے رابطہ کر سکتے ہیں اور پبلک ہونے سے پہلے مسئلہ حل کر سکتے ہیں۔' }
+                q: { en: 'How does the negative review shield work?', ur: 'منفی ریویو فلٹر کیسے کام کرتا ہے؟' },
+                a: { en: 'When a customer gives 1-3 stars, instead of sending them to Google Maps, BizBoost opens a private feedback form. The owner receives an instant alert to solve the issue privately.', ur: 'جب کسٹمر 1 سے 3 ستارے دیتا ہے تو سسٹم اسے گوگل میپس پر لے جانے کے بجائے پرائیوٹ فیڈبیک فارم دکھاتا ہے تاکہ آپ مسئلہ فوراً حل کر سکیں۔' }
               },
               {
-                q: { en: 'Do customers need to download an app?', ur: 'کیا کسٹمرز کو ایپ ڈاؤنلوڈ کرنی ہوگی؟' },
-                a: { en: 'No app needed! They just scan the QR code with their phone camera and everything works in their browser.', ur: 'کوئی ایپ کی ضرورت نہیں! وہ صرف اپنے فون کیمرے سے QR کوڈ اسکین کریں اور سب کچھ ان کے براؤزر میں کام کرے گا۔' }
+                q: { en: 'Do customers need to download any mobile app?', ur: 'کیا کسٹمرز کو کوئی ایپ ڈاؤنلوڈ کرنی پڑے گی؟' },
+                a: { en: 'No app is required! Any mobile phone camera scans the QR code and opens instantly in their browser.', ur: 'بالکل نہیں! کسٹمر صرف اپنے فون کے عام کیمرے سے اسکین کرتا ہے اور براؤزر میں صفحہ کھل جاتا ہے۔' }
               },
               {
-                q: { en: 'Can I cancel anytime?', ur: 'کیا میں کسی بھی وقت منسوخ کر سکتا ہوں؟' },
-                a: { en: 'Yes, you can cancel your subscription anytime. No questions asked, no penalties.', ur: 'جی ہاں، آپ کسی بھی وقت اپنی سبسکرپشن منسوخ کر سکتے ہیں۔ کوئی سوال نہیں، کوئی جرمانہ نہیں۔' }
+                q: { en: 'Can I print QR codes on my own banners and tables?', ur: 'کیا میں اپنے بینرز اور کارڈز پر QR پرنٹ کر سکتا ہوں؟' },
+                a: { en: 'Yes, the dashboard provides high-resolution PNG and print-ready formats that you can print on stickers, bill folders, and table stands.', ur: 'جی ہاں، ڈیش بورڈ سے ہائی ریزولوشن QR کوڈ ملتا ہے جسے آپ ٹیبل اسٹینڈز، بل بک اور اسٹیکرز پر لگا سکتے ہیں۔' }
               },
-            ].map((faq, index) => (
-              <div key={index} className="card">
-                <h3 className={`text-lg font-bold mb-3 ${language === 'ur' ? 'font-urdu' : ''}`}>
-                  {faq.q[language]}
-                </h3>
-                <p className={`text-gray-600 ${language === 'ur' ? 'font-urdu' : ''}`}>
-                  {faq.a[language]}
-                </p>
+            ].map((item, idx) => (
+              <div key={idx} className="border border-gray-200 rounded-xl overflow-hidden">
+                <button
+                  onClick={() => setOpenFaq(openFaq === idx ? null : idx)}
+                  className="w-full flex items-center justify-between p-4 text-left font-bold text-gray-900 bg-white hover:bg-gray-50 transition"
+                >
+                  <span className="text-sm sm:text-base">{item.q[language]}</span>
+                  <ChevronDown className={`w-5 h-5 text-gray-500 transition-transform ${openFaq === idx ? 'rotate-180 text-primary-600' : ''}`} />
+                </button>
+                {openFaq === idx && (
+                  <div className="p-4 pt-1 text-sm text-gray-600 bg-gray-50/50 border-t border-gray-100 leading-relaxed">
+                    {item.a[language]}
+                  </div>
+                )}
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="py-20 gradient-primary text-white">
-        <div className="container-app text-center">
-          <h2 className={`text-3xl md:text-4xl font-bold mb-6 ${language === 'ur' ? 'font-urdu' : ''}`}>
-            {language === 'en' ? 'Ready to Boost Your Business?' : 'اپنا بزنس بڑھانے کے لیے تیار ہیں؟'}
+      {/* CTA Footer Banner */}
+      <section className="py-16 gradient-primary text-white text-center">
+        <div className="container-app max-w-3xl">
+          <h2 className="text-3xl sm:text-4xl font-extrabold mb-4">
+            {language === 'en' ? 'Start Getting 5-Star Reviews Today' : 'آج ہی اپنے 5-اسٹار ریویوز بڑھائیں'}
           </h2>
-          <p className={`text-xl mb-8 opacity-90 ${language === 'ur' ? 'font-urdu' : ''}`}>
-            {language === 'en' 
-              ? 'Join thousands of businesses already using BizBoost Pro'
-              : 'ہزاروں بزنسز میں شامل ہوں جو پہلے سے BizBoost Pro استعمال کر رہے ہیں'}
+          <p className="text-base sm:text-lg opacity-90 mb-8 max-w-xl mx-auto">
+            {language === 'en'
+              ? 'Join restaurants, cafes, and retail stores boosting their local Google ranking with BizBoost Pro.'
+              : 'سینکڑوں لوکل بزنسز کے ساتھ شامل ہوں اور اپنی سیلز اور ریٹنگ میں اضافہ کریں۔'}
           </p>
-          <Link href="/signup" className="btn bg-white text-primary-600 hover:bg-gray-100 text-lg px-8 py-4">
-            {language === 'en' ? 'Start Free Today' : 'آج مفت شروع کریں'}
-            <ArrowRight className="w-5 h-5 ml-2" />
+          <Link href="/signup" className="btn bg-white text-primary-700 hover:bg-gray-100 font-bold px-8 py-3.5 shadow-lg">
+            {language === 'en' ? 'Create Your Account' : 'اپنا اکاؤنٹ بنائیں'}
           </Link>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="py-12 bg-gray-900 text-white">
+      <footer className="py-12 bg-gray-900 text-white text-xs">
         <div className="container-app">
-          <div className="grid md:grid-cols-4 gap-8 mb-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-8">
             <div>
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-10 h-10 rounded-xl bg-primary-500 flex items-center justify-center">
-                  <TrendingUp className="w-6 h-6 text-white" />
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-8 h-8 rounded-lg bg-primary-500 flex items-center justify-center font-bold">
+                  B
                 </div>
-                <span className="text-xl font-bold">BizBoost Pro</span>
+                <span className="font-extrabold text-sm text-white">BizBoost Pro</span>
               </div>
-              <p className="text-gray-400 text-sm">
-                {language === 'en' 
-                  ? 'AI-powered Google Business Profile optimization'
-                  : 'AI سے چلنے والا گوگل بزنس پروفائل آپٹیمائیزیشن'}
+              <p className="text-gray-400 leading-relaxed">
+                Google Business Profile AI Review Booster for local businesses.
               </p>
             </div>
-            
+
             <div>
-              <h4 className="font-bold mb-4">{language === 'en' ? 'Product' : 'پروڈکٹ'}</h4>
-              <ul className="space-y-2 text-gray-400 text-sm">
-                <li><a href="#features">{language === 'en' ? 'Features' : 'خصوصیات'}</a></li>
-                <li><a href="#pricing">{language === 'en' ? 'Pricing' : 'قیمتیں'}</a></li>
-                <li><a href="#faq">{language === 'en' ? 'FAQ' : 'عمومی سوالات'}</a></li>
+              <h4 className="font-bold text-white mb-3">Navigation</h4>
+              <ul className="space-y-2 text-gray-400">
+                <li><a href="#features" className="hover:text-white">Features</a></li>
+                <li><a href="#how-it-works" className="hover:text-white">How it Works</a></li>
+                <li><a href="#pricing" className="hover:text-white">Pricing</a></li>
+                <li><Link href="/scan/demo" className="hover:text-white">Customer Demo</Link></li>
               </ul>
             </div>
-            
+
             <div>
-              <h4 className="font-bold mb-4">{language === 'en' ? 'Legal' : 'قانونی'}</h4>
-              <ul className="space-y-2 text-gray-400 text-sm">
-                <li><a href="/privacy">{language === 'en' ? 'Privacy Policy' : 'پرائیویسی پالیسی'}</a></li>
-                <li><a href="/terms">{language === 'en' ? 'Terms of Service' : 'سروس کی شرائط'}</a></li>
-                <li><a href="/refund">{language === 'en' ? 'Refund Policy' : 'رقم واپسی کی پالیسی'}</a></li>
+              <h4 className="font-bold text-white mb-3">Legal & Terms</h4>
+              <ul className="space-y-2 text-gray-400">
+                <li><button onClick={() => setLegalModal('privacy')} className="hover:text-white">Privacy Policy</button></li>
+                <li><button onClick={() => setLegalModal('terms')} className="hover:text-white">Terms of Service</button></li>
+                <li><button onClick={() => setLegalModal('refund')} className="hover:text-white">Refund Policy</button></li>
               </ul>
             </div>
-            
+
             <div>
-              <h4 className="font-bold mb-4">{language === 'en' ? 'Contact' : 'رابطہ'}</h4>
-              <ul className="space-y-2 text-gray-400 text-sm">
-                <li className="flex items-center gap-2">
-                  <Phone className="w-4 h-4" />
-                  +92 300 1234567
-                </li>
-                <li className="flex items-center gap-2">
-                  <Globe className="w-4 h-4" />
-                  support@bizboost.pro
-                </li>
+              <h4 className="font-bold text-white mb-3">Support</h4>
+              <ul className="space-y-2 text-gray-400">
+                <li>support@bizboost.pro</li>
+                <li>WhatsApp: +92 300 1234567</li>
+                <li>Lahore, Pakistan</li>
               </ul>
             </div>
           </div>
-          
-          <div className="pt-8 border-t border-gray-800 text-center text-gray-400 text-sm">
-            © 2024 BizBoost Pro. All rights reserved.
+
+          <div className="border-t border-gray-800 pt-6 flex flex-col sm:flex-row items-center justify-between text-gray-500 gap-4">
+            <p>© 2026 BizBoost Pro. All rights reserved.</p>
+            <p>100% Compliant with Google Business Policies.</p>
           </div>
         </div>
       </footer>
+
+      {/* Interactive Demo Walkthrough Modal */}
+      {demoOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl relative animate-in fade-in zoom-in-95">
+            <button 
+              onClick={() => setDemoOpen(false)}
+              className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="text-center mb-6">
+              <div className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center mx-auto mb-3 text-white">
+                <Sparkles className="w-6 h-6" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900">Experience Live Customer Demo</h3>
+              <p className="text-xs text-gray-500 mt-1">See exactly what your restaurant or store customer sees</p>
+            </div>
+
+            <div className="space-y-3 mb-6 text-sm text-gray-600">
+              <div className="p-3 bg-gray-50 rounded-xl flex items-center gap-3">
+                <span className="w-6 h-6 rounded-full bg-primary-100 text-primary-600 text-xs font-bold flex items-center justify-center">1</span>
+                <span>Customer taps 5 stars after their meal.</span>
+              </div>
+              <div className="p-3 bg-gray-50 rounded-xl flex items-center gap-3">
+                <span className="w-6 h-6 rounded-full bg-primary-100 text-primary-600 text-xs font-bold flex items-center justify-center">2</span>
+                <span>Gemini AI generates 3 customized review drafts in English/Urdu.</span>
+              </div>
+              <div className="p-3 bg-gray-50 rounded-xl flex items-center gap-3">
+                <span className="w-6 h-6 rounded-full bg-primary-100 text-primary-600 text-xs font-bold flex items-center justify-center">3</span>
+                <span>Customer taps 'Copy' and posts straight to Google in 5 seconds.</span>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <Link
+                href="/scan/demo"
+                className="btn btn-primary flex-1 text-center py-2.5 text-sm"
+              >
+                Launch Demo in Browser
+              </Link>
+              <button
+                onClick={() => setDemoOpen(false)}
+                className="btn btn-secondary px-4 py-2.5 text-sm"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Legal Information Modal */}
+      {legalModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl relative">
+            <button 
+              onClick={() => setLegalModal(null)}
+              className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <h3 className="text-lg font-bold text-gray-900 mb-3 capitalize">
+              {legalModal === 'privacy' && 'Privacy Policy'}
+              {legalModal === 'terms' && 'Terms of Service'}
+              {legalModal === 'refund' && 'Refund Policy'}
+            </h3>
+
+            <div className="text-xs text-gray-600 space-y-2 mb-6 max-h-60 overflow-y-auto">
+              <p>BizBoost Pro values your privacy. We store business profile links and customer rating metrics securely. We never sell personal data or automate fake reviews.</p>
+              <p>Subscriptions can be cancelled at any time without fees. Refunds are granted within 7 days of purchase upon request.</p>
+            </div>
+
+            <button
+              onClick={() => setLegalModal(null)}
+              className="btn btn-primary w-full py-2 text-xs"
+            >
+              Understood
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

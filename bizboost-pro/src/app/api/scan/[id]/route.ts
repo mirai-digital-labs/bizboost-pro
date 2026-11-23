@@ -32,7 +32,7 @@ export async function GET(
         success: true,
         business: {
           id: businessId,
-          name: 'Your Business',
+          name: businessId === 'demo' ? 'Royal Spice Lounge (Demo)' : 'Your Business',
           type: 'Restaurant & Cafe',
           reviewThreshold: 3,
           googleReviewUrl: 'https://www.google.com/maps',

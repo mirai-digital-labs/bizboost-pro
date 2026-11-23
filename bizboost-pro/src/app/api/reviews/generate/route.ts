@@ -15,45 +15,44 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get business info
-    const business = await prisma.business.findUnique({
-      where: { id: businessId },
-      select: { name: true, category: true },
-    });
-
-    if (!business) {
-      return NextResponse.json(
-        { error: 'Business not found' },
-        { status: 404 }
-      );
+    // Get business info (optional/graceful fallback)
+    let business = null;
+    try {
+      business = await prisma.business.findUnique({
+        where: { id: businessId },
+        select: { name: true, category: true, userId: true },
+      });
+    } catch (e) {
+      console.warn('Could not query business for review generation:', e);
     }
 
-    // Check usage limits
-    const subscription = await prisma.subscription.findFirst({
-      where: { userId: (await prisma.business.findUnique({ where: { id: businessId } }))?.userId },
-    });
-
-    // For now, allow generation (in production, check limits)
-    // const limits = getPlanLimits(subscription?.plan || 'STARTER');
-    // if (subscription && subscription.reviewsUsed >= limits.reviewsPerMonth) {
-    //   return NextResponse.json({ error: 'Monthly review limit reached' }, { status: 403 });
-    // }
+    const businessName = business?.name || (businessId === 'demo' ? 'Royal Spice Lounge' : 'Your Business');
+    const businessType = business?.category || 'Restaurant & Cafe';
 
     // Generate AI review drafts
     const drafts = await generateReviewVariations({
       rating,
       aspects,
       language,
-      businessName: business.name || undefined,
-      businessType: business.category || undefined,
+      businessName,
+      businessType,
     });
 
-    // Increment usage count
-    if (subscription) {
-      await prisma.subscription.update({
-        where: { id: subscription.id },
-        data: { reviewsUsed: { increment: 1 } },
-      });
+    // Try to increment usage count if subscription exists
+    try {
+      if (business?.userId) {
+        const subscription = await prisma.subscription.findFirst({
+          where: { userId: business.userId },
+        });
+        if (subscription) {
+          await prisma.subscription.update({
+            where: { id: subscription.id },
+            data: { reviewsUsed: { increment: 1 } },
+          });
+        }
+      }
+    } catch (subErr) {
+      console.warn('Could not update subscription usage:', subErr);
     }
 
     return NextResponse.json({
