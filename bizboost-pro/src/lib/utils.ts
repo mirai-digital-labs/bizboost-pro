@@ -1,11 +1,13 @@
-import { type ClassValue, clsx } from 'clsx';
-import { twMerge } from 'tailwind-merge';
+export type ClassValue = string | number | boolean | undefined | null | { [key: string]: any } | ClassValue[];
 
 /**
  * Merge Tailwind CSS classes
  */
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
+export function cn(...inputs: any[]): string {
+  return inputs
+    .flat(Infinity)
+    .filter(Boolean)
+    .join(' ');
 }
 
 /**
