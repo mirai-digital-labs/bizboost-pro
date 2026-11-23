@@ -135,7 +135,7 @@ export default function SignupPage() {
                       type="text"
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      className="input pl-12"
+                      className="input pl-12 bg-white text-gray-900 placeholder:text-gray-400"
                       placeholder="John Doe"
                       required
                     />
@@ -150,7 +150,7 @@ export default function SignupPage() {
                       type="email"
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      className="input pl-12"
+                      className="input pl-12 bg-white text-gray-900 placeholder:text-gray-400"
                       placeholder="you@example.com"
                       required
                     />
@@ -165,7 +165,7 @@ export default function SignupPage() {
                       type="tel"
                       value={formData.phone}
                       onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                      className="input pl-12"
+                      className="input pl-12 bg-white text-gray-900 placeholder:text-gray-400"
                       placeholder="+92 300 1234567"
                     />
                   </div>
@@ -176,10 +176,10 @@ export default function SignupPage() {
                   <select
                     value={formData.country}
                     onChange={(e) => setFormData({ ...formData, country: e.target.value })}
-                    className="input"
+                    className="input bg-white text-gray-900"
                   >
                     {countries.map((country) => (
-                      <option key={country.code} value={country.code}>
+                      <option key={country.code} value={country.code} className="text-gray-900 bg-white">
                         {country.name}
                       </option>
                     ))}
@@ -198,7 +198,7 @@ export default function SignupPage() {
                       type={showPassword ? 'text' : 'password'}
                       value={formData.password}
                       onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                      className="input pl-12 pr-12"
+                      className="input pl-12 pr-12 bg-white text-gray-900 placeholder:text-gray-400"
                       placeholder="Min. 8 characters"
                       required
                     />
@@ -221,7 +221,7 @@ export default function SignupPage() {
                       type={showConfirmPassword ? 'text' : 'password'}
                       value={formData.confirmPassword}
                       onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                      className="input pl-12 pr-12"
+                      className="input pl-12 pr-12 bg-white text-gray-900 placeholder:text-gray-400"
                       placeholder="Confirm your password"
                       required
                     />

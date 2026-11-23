@@ -222,7 +222,7 @@ export default function ScanPage() {
                 type="text"
                 value={customerName}
                 onChange={(e) => setCustomerName(e.target.value)}
-                className="input"
+                className="input bg-white text-gray-900 placeholder:text-gray-400"
                 placeholder={language === 'en' ? 'Enter your name' : 'اپنا نام درج کریں'}
               />
             </div>
@@ -234,7 +234,7 @@ export default function ScanPage() {
               <textarea
                 value={reviewText}
                 onChange={(e) => setReviewText(e.target.value)}
-                className="input min-h-[120px]"
+                className="input min-h-[120px] bg-white text-gray-900 placeholder:text-gray-400"
                 placeholder={language === 'en' ? 'Tell us about your experience...' : 'اپنے تجربے کے بارے میں بتائیں...'}
               />
             </div>
