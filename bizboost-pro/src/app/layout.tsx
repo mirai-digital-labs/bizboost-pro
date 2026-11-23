@@ -1,8 +1,9 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import SessionProvider from '@/components/providers/SessionProvider';
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://bizboost.pro'),
   title: 'BizBoost Pro - Boost Your Google Business Profile',
   description: 'AI-powered Google Business Profile optimization tool. Get more reviews, improve your rating, and grow your business with smart QR codes and AI assistance.',
   keywords: 'Google Business Profile, reviews, QR code, AI reviews, business optimization, local SEO',
@@ -32,7 +33,11 @@ export const metadata: Metadata = {
     description: 'AI-powered Google Business Profile optimization tool',
     images: ['/og-image.png'],
   },
-  viewport: 'width=device-width, initial-scale=1',
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
   themeColor: '#3b82f6',
 };
 
