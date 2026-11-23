@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react';
-import { TrendingUp, Mail, Lock, Eye, EyeOff, ArrowRight, Check } from 'lucide-react';
+import { TrendingUp, Eye, EyeOff, ArrowRight, Check } from 'lucide-react';
 import Button from '@/components/ui/Button';
 
 export default function LoginPage() {
@@ -86,35 +86,32 @@ export default function LoginPage() {
 
             <div>
               <label className="label">Email</label>
-              <div className="relative">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="input pl-12 bg-white text-gray-900 placeholder:text-gray-400"
-                  placeholder="you@example.com"
-                  required
-                />
-              </div>
+              <input
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                className="input bg-white text-gray-900 placeholder:text-gray-400"
+                placeholder="you@example.com"
+                required
+              />
             </div>
 
             <div>
               <label className="label">Password</label>
               <div className="relative">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="input pl-12 pr-12 bg-white text-gray-900 placeholder:text-gray-400"
+                  className="input pr-12 bg-white text-gray-900 placeholder:text-gray-400"
                   placeholder="••••••••"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                  aria-label="Toggle password visibility"
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>

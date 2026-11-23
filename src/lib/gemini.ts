@@ -24,18 +24,20 @@ export interface PostGenerationOptions {
  * Fallback generator when Gemini API Key is not set or network issue occurs
  */
 function getFallbackReviewDrafts(options: ReviewGenerationOptions): string[] {
-  const { businessName = 'this business', language = 'en', rating = 5 } = options;
+  const { businessName = 'this business', language = 'en', rating = 5, aspects = [] } = options;
+  const aspectsList = aspects.filter(Boolean);
+  const aspectStr = aspectsList.length > 0 ? aspectsList.slice(0, 3).join(', ') : 'service & quality';
 
   if (language === 'ur') {
     if (rating >= 4) {
       return [
-        `${businessName} میں بہترین تجربہ رہا! سروس اور کوالٹی دونوں شاندار تھیں۔ سب کو ضرور آزمانا چاہیے!`,
-        `${businessName} جا کر بہت خوشی ہوئی۔ ماحول اور اسٹاف بہت زبردست تھا۔ میں دوبارہ ضرور آؤں گا!`,
-        `${businessName} نے میری تمام توقعات پوری کر دیں۔ لاجواب کوالٹی اور دوستانہ انداز، بہت عمدہ!`,
+        `${businessName} میں بہترین تجربہ رہا! خاص طور پر ${aspectStr} لاجواب تھی۔ سب کو ضرور آزمانا چاہیے!`,
+        `${businessName} جا کر بہت خوشی ہوئی۔ اسٹاف کا رویہ اور ${aspectStr} بہت زبردست تھا۔ میں دوبارہ ضرور آؤں گا!`,
+        `${businessName} نے میری تمام توقعات پوری کر دیں۔ عمدہ کوالٹی، مناسب قیمت اور بہترین ماحول!`,
       ];
     }
     return [
-      `${businessName} میں تجربہ ٹھیک رہا، البتہ سروس میں کچھ بہتری کی گنجائش ہے۔`,
+      `${businessName} میں تجربہ ٹھیک رہا، البتہ سروس اور کوالٹی میں کچھ بہتری کی گنجائش ہے۔`,
       `مناسب تجربہ رہا، مگر توقعات سے تھوڑا کم تھا۔ امید ہے آئندہ بہتر ہوگا۔`,
       `${businessName} کا معیار اوسط درجے کا رہا، کچھ چیزوں پر توجہ کی ضرورت ہے۔`,
     ];
@@ -44,9 +46,9 @@ function getFallbackReviewDrafts(options: ReviewGenerationOptions): string[] {
   // English fallback
   if (rating >= 4) {
     return [
-      `Amazing experience at ${businessName}! The quality and service were exceptional. Highly recommended to everyone!`,
-      `Had a wonderful time at ${businessName}. Great atmosphere, polite staff, and top-tier service. Will definitely visit again!`,
-      `${businessName} exceeded all my expectations! Authentic taste, great attention to detail, and friendly people. A must-visit!`,
+      `Amazing experience at ${businessName}! The ${aspectStr} was truly exceptional. Highly recommended to everyone!`,
+      `Had a wonderful visit to ${businessName}. Great atmosphere, polite staff, and especially loved the ${aspectStr}. Will definitely be back!`,
+      `${businessName} exceeded all my expectations! Authentic quality, great attention to detail, and top-notch value. A must-visit!`,
     ];
   }
 

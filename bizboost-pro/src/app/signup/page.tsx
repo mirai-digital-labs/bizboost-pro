@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react';
-import { TrendingUp, Mail, Lock, Eye, EyeOff, User, Phone, ArrowRight, Check } from 'lucide-react';
+import { TrendingUp, Eye, EyeOff, ArrowRight, Check } from 'lucide-react';
 import Button from '@/components/ui/Button';
 
 export default function SignupPage() {
@@ -129,46 +129,37 @@ export default function SignupPage() {
               <>
                 <div>
                   <label className="label">Full Name</label>
-                  <div className="relative">
-                    <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    <input
-                      type="text"
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      className="input pl-12 bg-white text-gray-900 placeholder:text-gray-400"
-                      placeholder="John Doe"
-                      required
-                    />
-                  </div>
+                  <input
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    className="input bg-white text-gray-900 placeholder:text-gray-400"
+                    placeholder="e.g. Rahul Sharma or Ali Khan"
+                    required
+                  />
                 </div>
 
                 <div>
                   <label className="label">Email</label>
-                  <div className="relative">
-                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    <input
-                      type="email"
-                      value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      className="input pl-12 bg-white text-gray-900 placeholder:text-gray-400"
-                      placeholder="you@example.com"
-                      required
-                    />
-                  </div>
+                  <input
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    className="input bg-white text-gray-900 placeholder:text-gray-400"
+                    placeholder="you@example.com"
+                    required
+                  />
                 </div>
 
                 <div>
                   <label className="label">Phone (Optional)</label>
-                  <div className="relative">
-                    <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    <input
-                      type="tel"
-                      value={formData.phone}
-                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                      className="input pl-12 bg-white text-gray-900 placeholder:text-gray-400"
-                      placeholder="+92 300 1234567"
-                    />
-                  </div>
+                  <input
+                    type="tel"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    className="input bg-white text-gray-900 placeholder:text-gray-400"
+                    placeholder="+92 300 1234567"
+                  />
                 </div>
 
                 <div>
@@ -193,12 +184,11 @@ export default function SignupPage() {
                 <div>
                   <label className="label">Password</label>
                   <div className="relative">
-                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                     <input
                       type={showPassword ? 'text' : 'password'}
                       value={formData.password}
                       onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                      className="input pl-12 pr-12 bg-white text-gray-900 placeholder:text-gray-400"
+                      className="input pr-12 bg-white text-gray-900 placeholder:text-gray-400"
                       placeholder="Min. 8 characters"
                       required
                     />
@@ -216,12 +206,11 @@ export default function SignupPage() {
                 <div>
                   <label className="label">Confirm Password</label>
                   <div className="relative">
-                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                     <input
                       type={showConfirmPassword ? 'text' : 'password'}
                       value={formData.confirmPassword}
                       onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                      className="input pl-12 pr-12 bg-white text-gray-900 placeholder:text-gray-400"
+                      className="input pr-12 bg-white text-gray-900 placeholder:text-gray-400"
                       placeholder="Confirm your password"
                       required
                     />

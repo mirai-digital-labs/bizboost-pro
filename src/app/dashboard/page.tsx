@@ -35,11 +35,20 @@ export default function DashboardPage() {
     { id: 'lg-2', name: 'Lahori Grill & Cafe', location: 'Lahore, Pakistan', category: 'Cafe & Grill', reviews: 91, rating: 4.6, googlePlaceId: 'ChIJ5TCOcRaY5zsR65GLOXy9cmg' },
   ]);
 
+  // Add Business Modal Wizard State (Transcript Flow)
+  const [addBusinessStep, setAddBusinessStep] = useState(1);
+  const [createdBizQr, setCreatedBizQr] = useState('');
+  const [newKeywordInput, setNewKeywordInput] = useState('');
   const [newBusinessForm, setNewBusinessForm] = useState({
     name: '',
-    location: '',
-    category: 'Restaurant',
+    phone: '',
+    selectedGoogleBranch: '',
+    city: '',
+    state: '',
+    country: 'Pakistan',
+    category: 'Retail Store & Wholesale',
     googlePlaceId: '',
+    keywords: ['Best Quality', 'Helpful Staff', 'Affordable Pricing'],
   });
 
   // Recent reviews state
@@ -53,7 +62,13 @@ export default function DashboardPage() {
 
   const [reviewFilter, setReviewFilter] = useState<'all' | 'public' | 'private'>('all');
 
-  // Settings State
+  // Settings State & Local SEO Keyword Training (from transcript)
+  const [trainedKeywords, setTrainedKeywords] = useState<string[]>([
+    'Best Sarees Shop in Pune',
+    'Best Wholesale Saree in Pune',
+    'Best Biryani in Karachi',
+    'Top Rated Quality Products'
+  ]);
   const [settingsForm, setSettingsForm] = useState({
     businessName: 'Karachi Biryani House',
     reviewThreshold: 3,
@@ -78,26 +93,41 @@ export default function DashboardPage() {
       .catch(err => console.warn('QR error:', err));
   }, [selectedBusinessId, qrColor]);
 
-  // Handle Add Business
-  const handleAddBusiness = (e: React.FormEvent) => {
+  // Handle Add Business (Transcript flow)
+  const handleAddBusiness = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newBusinessForm.name) return;
 
     const newId = `biz-${Date.now()}`;
+    const fullLocation = [newBusinessForm.city, newBusinessForm.state, newBusinessForm.country].filter(Boolean).join(', ') || 'Pune, India';
     const newBiz = {
       id: newId,
-      name: newBusinessForm.name,
-      location: newBusinessForm.location || 'Pakistan',
+      name: newBusinessForm.selectedGoogleBranch || newBusinessForm.name,
+      location: fullLocation,
       category: newBusinessForm.category,
       reviews: 0,
       rating: 5.0,
-      googlePlaceId: newBusinessForm.googlePlaceId,
+      googlePlaceId: newBusinessForm.googlePlaceId || 'ChIJN1t_tDeuEmsRUsoyG83frY4',
     };
 
     setBusinesses([newBiz, ...businesses]);
     setSelectedBusinessId(newId);
-    setNewBusinessForm({ name: '', location: '', category: 'Restaurant', googlePlaceId: '' });
-    setAddBusinessModal(false);
+
+    // Generate QR in one instant ("Ek Jhatke Mein")
+    try {
+      const origin = typeof window !== 'undefined' ? window.location.origin : 'https://bizboost-pro.vercel.app';
+      const scanUrl = `${origin}/scan/${newId}`;
+      const qrDataUrl = await QRCode.toDataURL(scanUrl, {
+        width: 380,
+        margin: 2,
+        color: { dark: qrColor, light: '#ffffff' },
+      });
+      setCreatedBizQr(qrDataUrl);
+    } catch (err) {
+      console.warn('QR gen error in wizard:', err);
+    }
+
+    setAddBusinessStep(3);
   };
 
   // Generate AI reply to customer review
@@ -716,6 +746,63 @@ export default function DashboardPage() {
                   <p className="text-[11px] text-gray-500 mt-1">Customers who select stars below this threshold will never be directed to Google.</p>
                 </div>
 
+                {/* Local SEO Keywords Training (Transcript Feature) */}
+                <div className="p-4 bg-primary-50/60 rounded-xl border border-primary-200">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <Sparkles className="w-4 h-4 text-primary-600" />
+                    <label className="text-xs font-bold text-gray-900">Local SEO Keywords Training</label>
+                  </div>
+                  <p className="text-[11px] text-gray-600 mb-3">
+                    Train the AI with your target local keywords (e.g. <em>"Best Sarees Shop in Pune"</em>, <em>"Best Biryani in Karachi"</em>). When customer scans the QR, the AI naturally weaves these keywords into their Google reviews to boost your Google 3-Pack Maps ranking!
+                  </p>
+                  
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {trainedKeywords.map((kw, i) => (
+                      <span key={i} className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs bg-white text-primary-800 border border-primary-200 shadow-xs font-medium">
+                        <span>{kw}</span>
+                        <button
+                          type="button"
+                          onClick={() => setTrainedKeywords(trainedKeywords.filter((_, idx) => idx !== i))}
+                          className="text-gray-400 hover:text-red-500"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={newKeywordInput}
+                      onChange={(e) => setNewKeywordInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && newKeywordInput.trim()) {
+                          e.preventDefault();
+                          if (!trainedKeywords.includes(newKeywordInput.trim())) {
+                            setTrainedKeywords([...trainedKeywords, newKeywordInput.trim()]);
+                          }
+                          setNewKeywordInput('');
+                        }
+                      }}
+                      placeholder="Type keyword & press Enter (e.g. Best Sarees Shop in Pune)"
+                      className="input text-xs bg-white text-gray-900 flex-1"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (newKeywordInput.trim() && !trainedKeywords.includes(newKeywordInput.trim())) {
+                          setTrainedKeywords([...trainedKeywords, newKeywordInput.trim()]);
+                          setNewKeywordInput('');
+                        }
+                      }}
+                      className="btn btn-secondary text-xs px-4"
+                    >
+                      + Add
+                    </button>
+                  </div>
+                </div>
+
                 <div>
                   <label className="label text-xs">Manager WhatsApp for Instant Alerts</label>
                   <input
@@ -765,83 +852,362 @@ export default function DashboardPage() {
         )}
       </main>
 
-      {/* Add Business Modal */}
+      {/* Add Business Modal (ReviewBro Transcript Flow) */}
       {addBusinessModal && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl relative">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl relative max-h-[92vh] overflow-y-auto">
             <button
-              onClick={() => setAddBusinessModal(false)}
+              onClick={() => { setAddBusinessModal(false); setAddBusinessStep(1); }}
               className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
             >
               <X className="w-5 h-5" />
             </button>
 
-            <h3 className="text-lg font-bold text-gray-900 mb-1">Add Business Location</h3>
-            <p className="text-xs text-gray-500 mb-5">Create a dedicated QR code stand for your new branch.</p>
+            {/* Step Progress Indicators */}
+            <div className="flex items-center gap-2 mb-4">
+              <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${addBusinessStep === 1 ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-600'}`}>
+                1. Google Match
+              </span>
+              <span className="text-gray-300">→</span>
+              <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${addBusinessStep === 2 ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-600'}`}>
+                2. Category & SEO
+              </span>
+              <span className="text-gray-300">→</span>
+              <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${addBusinessStep === 3 ? 'bg-success-600 text-white' : 'bg-gray-100 text-gray-600'}`}>
+                3. QR Generated
+              </span>
+            </div>
 
-            <form onSubmit={handleAddBusiness} className="space-y-4">
-              <div>
-                <label className="label text-xs">Branch / Business Name</label>
-                <input
-                  type="text"
-                  value={newBusinessForm.name}
-                  onChange={(e) => setNewBusinessForm({ ...newBusinessForm, name: e.target.value })}
-                  placeholder="e.g. Royal Spice - DHA Branch"
-                  className="input text-sm"
-                  required
-                />
+            {/* STEP 1: Business Name, Phone & Google Business Profile Auto-Suggest */}
+            {addBusinessStep === 1 && (
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900">What is your business name?</h3>
+                  <p className="text-xs text-gray-500">Enter your business name and contact number to automatically sync your Google Business Profile.</p>
+                </div>
+
+                <div>
+                  <label className="label text-xs">Business Name</label>
+                  <input
+                    type="text"
+                    value={newBusinessForm.name}
+                    onChange={(e) => setNewBusinessForm({ ...newBusinessForm, name: e.target.value })}
+                    placeholder="e.g. Hari Om Wholesale or Royal Spice"
+                    className="input text-sm bg-white text-gray-900"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="label text-xs">Contact Number / WhatsApp</label>
+                  <input
+                    type="text"
+                    value={newBusinessForm.phone}
+                    onChange={(e) => setNewBusinessForm({ ...newBusinessForm, phone: e.target.value })}
+                    placeholder="e.g. 7744900878 or +92 300 1234567"
+                    className="input text-sm bg-white text-gray-900"
+                  />
+                </div>
+
+                {/* Live Google Business Profile Matches (from video) */}
+                <div className="pt-1">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-bold text-gray-800 flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-success-500 animate-pulse"></span>
+                      Google Business Profiles Found:
+                    </span>
+                    <span className="text-[10px] text-primary-600 font-medium">Select your verified branch</span>
+                  </div>
+
+                  <div className="space-y-2">
+                    {[
+                      {
+                        title: `${newBusinessForm.name || 'Hari Om Wholesale'} - Kalewadi Branch`,
+                        area: 'Pune, Maharashtra',
+                        rating: '4.9 ★ (142 Google reviews)',
+                        category: 'Retail Store & Saree Wholesale'
+                      },
+                      {
+                        title: `${newBusinessForm.name || 'Hari Om Wholesale'} - Chakan Market`,
+                        area: 'Chakan, Pune',
+                        rating: '4.7 ★ (89 Google reviews)',
+                        category: 'Wholesale Market Branch'
+                      },
+                      {
+                        title: `${newBusinessForm.name || 'Hari Om Wholesale'} - Commercial Center`,
+                        area: 'Central Pune',
+                        rating: '4.8 ★ (210 Google reviews)',
+                        category: 'Outlet 3'
+                      },
+                    ].map((match, idx) => (
+                      <div
+                        key={idx}
+                        onClick={() => setNewBusinessForm({
+                          ...newBusinessForm,
+                          selectedGoogleBranch: match.title,
+                          city: match.area.split(',')[0].trim(),
+                          state: match.area.split(',')[1]?.trim() || '',
+                        })}
+                        className={`p-3 rounded-xl border-2 cursor-pointer transition-all flex items-center justify-between ${
+                          newBusinessForm.selectedGoogleBranch === match.title
+                            ? 'border-primary-500 bg-primary-50/60 shadow-xs'
+                            : 'border-gray-200 hover:border-gray-300 bg-gray-50/50'
+                        }`}
+                      >
+                        <div>
+                          <div className="text-xs font-bold text-gray-900">{match.title}</div>
+                          <div className="text-[11px] text-gray-500">{match.area} · <span className="text-warning-600 font-bold">{match.rating}</span></div>
+                        </div>
+                        {newBusinessForm.selectedGoogleBranch === match.title ? (
+                          <CheckCircle className="w-5 h-5 text-primary-600 flex-shrink-0" />
+                        ) : (
+                          <span className="text-[11px] text-gray-400 font-medium px-2 py-0.5 rounded bg-white border border-gray-200">Select</span>
+                        )}
+                      </div>
+                    ))}
+
+                    <div
+                      onClick={() => setNewBusinessForm({
+                        ...newBusinessForm,
+                        selectedGoogleBranch: newBusinessForm.name || 'My New Business',
+                      })}
+                      className={`p-2.5 rounded-xl border cursor-pointer text-center text-xs transition ${
+                        newBusinessForm.selectedGoogleBranch === (newBusinessForm.name || 'My New Business')
+                          ? 'border-primary-500 bg-primary-50 font-bold text-primary-700'
+                          : 'border-dashed border-gray-300 text-gray-500 hover:bg-gray-50'
+                      }`}
+                    >
+                      + My business is unlisted on Google (Enter manually)
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-3 flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!newBusinessForm.name) {
+                        setNewBusinessForm({ ...newBusinessForm, name: 'Hari Om Wholesale' });
+                      }
+                      if (!newBusinessForm.selectedGoogleBranch) {
+                        setNewBusinessForm(prev => ({
+                          ...prev,
+                          name: prev.name || 'Hari Om Wholesale',
+                          selectedGoogleBranch: `${prev.name || 'Hari Om Wholesale'} - Kalewadi Branch`,
+                          city: 'Pune',
+                          state: 'Maharashtra',
+                          country: 'India',
+                        }));
+                      }
+                      setAddBusinessStep(2);
+                    }}
+                    className="btn btn-primary flex-1 text-xs py-3"
+                  >
+                    Continue to Category & SEO Keywords →
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAddBusinessModal(false)}
+                    className="btn btn-secondary text-xs px-4"
+                  >
+                    Cancel
+                  </button>
+                </div>
               </div>
+            )}
 
-              <div>
-                <label className="label text-xs">City / Area</label>
-                <input
-                  type="text"
-                  value={newBusinessForm.location}
-                  onChange={(e) => setNewBusinessForm({ ...newBusinessForm, location: e.target.value })}
-                  placeholder="e.g. DHA Phase 5, Lahore"
-                  className="input text-sm"
-                />
-              </div>
+            {/* STEP 2: Category, City & Local SEO Keywords Training */}
+            {addBusinessStep === 2 && (
+              <form onSubmit={handleAddBusiness} className="space-y-4">
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900">Category & Local SEO Keywords</h3>
+                  <p className="text-xs text-gray-500">Confirm your category and train the AI with your target search keywords.</p>
+                </div>
 
-              <div>
-                <label className="label text-xs">Category</label>
-                <select
-                  value={newBusinessForm.category}
-                  onChange={(e) => setNewBusinessForm({ ...newBusinessForm, category: e.target.value })}
-                  className="input text-sm"
-                >
-                  <option value="Restaurant">Restaurant & Cafe</option>
-                  <option value="Retail Store">Retail Store & Boutique</option>
-                  <option value="Salon & Spa">Salon, Spa & Beauty</option>
-                  <option value="Medical Clinic">Clinic & Hospital</option>
-                  <option value="Auto Service">Auto Workshop & Detailing</option>
-                </select>
-              </div>
+                <div>
+                  <label className="label text-xs">Selected Branch</label>
+                  <div className="p-2.5 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold text-gray-800">
+                    {newBusinessForm.selectedGoogleBranch || newBusinessForm.name}
+                  </div>
+                </div>
 
-              <div>
-                <label className="label text-xs">Google Review Link / Place ID (Optional)</label>
-                <input
-                  type="text"
-                  value={newBusinessForm.googlePlaceId}
-                  onChange={(e) => setNewBusinessForm({ ...newBusinessForm, googlePlaceId: e.target.value })}
-                  placeholder="Paste your Google Maps review URL"
-                  className="input text-sm"
-                />
-              </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="label text-xs">Category</label>
+                    <select
+                      value={newBusinessForm.category}
+                      onChange={(e) => setNewBusinessForm({ ...newBusinessForm, category: e.target.value })}
+                      className="input text-xs bg-white text-gray-900"
+                    >
+                      <option value="Retail Store & Saree Wholesale">Retail Store & Saree Wholesale</option>
+                      <option value="Restaurant & Cafe">Restaurant & Cafe</option>
+                      <option value="Salon & Beauty">Salon, Spa & Beauty</option>
+                      <option value="Clinic & Healthcare">Clinic & Healthcare</option>
+                      <option value="Auto Workshop & Detailing">Auto Workshop & Services</option>
+                      <option value="Fashion & Boutique">Fashion & Clothing</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="label text-xs">City / Area</label>
+                    <input
+                      type="text"
+                      value={newBusinessForm.city || 'Pune'}
+                      onChange={(e) => setNewBusinessForm({ ...newBusinessForm, city: e.target.value })}
+                      className="input text-xs bg-white text-gray-900"
+                      placeholder="e.g. Pune or Karachi"
+                    />
+                  </div>
+                </div>
 
-              <div className="pt-2 flex gap-3">
-                <button type="submit" className="btn btn-primary flex-1 text-xs py-2.5">
-                  Generate Location QR
-                </button>
+                {/* Local Keywords Section */}
+                <div className="p-3.5 bg-primary-50/60 rounded-xl border border-primary-200">
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <Sparkles className="w-4 h-4 text-primary-600" />
+                    <span className="text-xs font-bold text-gray-900">Train AI with Local SEO Keywords</span>
+                  </div>
+                  <p className="text-[11px] text-gray-600 mb-2.5">
+                    When customers scan your QR and generate reviews, AI will inject these keywords into Google reviews to rank your business #1!
+                  </p>
+
+                  <div className="flex flex-wrap gap-1.5 mb-2.5">
+                    {newBusinessForm.keywords.map((kw, i) => (
+                      <span key={i} className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] bg-white text-primary-800 border border-primary-200 font-medium">
+                        {kw}
+                        <button
+                          type="button"
+                          onClick={() => setNewBusinessForm({
+                            ...newBusinessForm,
+                            keywords: newBusinessForm.keywords.filter((_, idx) => idx !== i)
+                          })}
+                          className="text-gray-400 hover:text-red-500"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={newKeywordInput}
+                      onChange={(e) => setNewKeywordInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && newKeywordInput.trim()) {
+                          e.preventDefault();
+                          if (!newBusinessForm.keywords.includes(newKeywordInput.trim())) {
+                            setNewBusinessForm({
+                              ...newBusinessForm,
+                              keywords: [...newBusinessForm.keywords, newKeywordInput.trim()]
+                            });
+                          }
+                          setNewKeywordInput('');
+                        }
+                      }}
+                      placeholder="e.g. Best Sarees Shop in Pune"
+                      className="input text-xs bg-white text-gray-900 flex-1"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (newKeywordInput.trim() && !newBusinessForm.keywords.includes(newKeywordInput.trim())) {
+                          setNewBusinessForm({
+                            ...newBusinessForm,
+                            keywords: [...newBusinessForm.keywords, newKeywordInput.trim()]
+                          });
+                          setNewKeywordInput('');
+                        }
+                      }}
+                      className="btn btn-secondary text-xs px-3"
+                    >
+                      + Add
+                    </button>
+                  </div>
+                </div>
+
+                <div className="pt-2 flex gap-3">
+                  <button type="submit" className="btn btn-primary flex-1 text-xs py-3">
+                    Finish Setup & Generate QR Code ⚡
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAddBusinessStep(1)}
+                    className="btn btn-secondary text-xs px-4"
+                  >
+                    Back
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* STEP 3: One-Instant QR Code Generated ("Ek Jhatke Mein!") */}
+            {addBusinessStep === 3 && (
+              <div className="text-center py-2 animate-fade-in space-y-4">
+                <div className="w-14 h-14 mx-auto rounded-full bg-success-100 flex items-center justify-center">
+                  <CheckCircle className="w-8 h-8 text-success-600" />
+                </div>
+
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">QR Code Generated in One Instant!</h3>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Your QR code for <strong>{newBusinessForm.selectedGoogleBranch || newBusinessForm.name}</strong> is live and ready to print!
+                  </p>
+                </div>
+
+                {/* Standee Preview Card */}
+                <div className="max-w-[260px] mx-auto p-4 rounded-2xl bg-gradient-to-b from-primary-600 to-primary-800 text-white shadow-xl">
+                  <div className="text-[10px] font-bold tracking-wider uppercase opacity-90 mb-1">Scan To Review Us</div>
+                  <div className="font-bold text-sm truncate mb-3">{newBusinessForm.selectedGoogleBranch || newBusinessForm.name}</div>
+                  
+                  <div className="bg-white p-3 rounded-xl shadow-inner inline-block">
+                    {createdBizQr ? (
+                      <img src={createdBizQr} alt="Standee QR" className="w-40 h-40 object-contain mx-auto" />
+                    ) : (
+                      <div className="w-40 h-40 flex items-center justify-center text-gray-400 text-xs">Generating QR...</div>
+                    )}
+                  </div>
+
+                  <div className="flex items-center justify-center gap-1 mt-3">
+                    {[1, 2, 3, 4, 5].map((s) => (
+                      <Star key={s} className="w-3.5 h-3.5 fill-warning-400 text-warning-400" />
+                    ))}
+                  </div>
+                  <div className="text-[10px] opacity-80 mt-1">AI-Powered Review Assistant</div>
+                </div>
+
+                <div className="pt-2 flex flex-col sm:flex-row gap-2.5">
+                  {createdBizQr && (
+                    <a
+                      href={createdBizQr}
+                      download={`BizBoost-QR-${(newBusinessForm.name || 'business').toLowerCase().replace(/\s+/g, '-')}.png`}
+                      className="btn btn-primary flex-1 text-xs py-2.5 flex items-center justify-center gap-2"
+                    >
+                      <Download className="w-4 h-4" />
+                      Download Standee PNG
+                    </a>
+                  )}
+                  <a
+                    href={`/scan/${selectedBusinessId}`}
+                    target="_blank"
+                    className="btn btn-secondary flex-1 text-xs py-2.5 flex items-center justify-center gap-2"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    Test Customer Scan
+                  </a>
+                </div>
+
                 <button
                   type="button"
-                  onClick={() => setAddBusinessModal(false)}
-                  className="btn btn-secondary text-xs px-4"
+                  onClick={() => {
+                    setAddBusinessModal(false);
+                    setAddBusinessStep(1);
+                  }}
+                  className="w-full text-xs text-gray-500 hover:text-gray-700 py-1"
                 >
-                  Cancel
+                  Close & Go to Dashboard
                 </button>
               </div>
-            </form>
+            )}
           </div>
         </div>
       )}

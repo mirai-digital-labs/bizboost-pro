@@ -23,6 +23,22 @@ export default function ScanPage() {
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
 
+  // Multi-Aspect ratings from video transcript (Product, Staff, Pricing, Billing, Cleanliness)
+  const [aspectRatings, setAspectRatings] = useState({
+    products: 5,
+    staff: 5,
+    pricing: 5,
+    billing: 5,
+    cleanliness: 5,
+  });
+
+  // Quick-tap positive chips (What was great?)
+  const [selectedChips, setSelectedChips] = useState<string[]>([
+    'Helpful Staff',
+    'Clean Store',
+    'Genuine Products'
+  ]);
+
   // Business state
   const [business, setBusiness] = useState<{
     name: string;
@@ -58,9 +74,18 @@ export default function ScanPage() {
     }, 400);
   };
 
-  // Generate AI review drafts
+  // Generate AI review drafts (passing multi-aspect details from video transcript)
   const generateAiDrafts = async () => {
     setLoading(true);
+
+    const aspects = [
+      ...selectedChips,
+      aspectRatings.products === 5 ? 'Top Product Range' : '',
+      aspectRatings.staff === 5 ? 'Helpful & Courteous Staff' : '',
+      aspectRatings.pricing === 5 ? 'Great Pricing & Value' : '',
+      aspectRatings.billing === 5 ? 'Fast Billing Speed' : '',
+      aspectRatings.cleanliness >= 4 ? 'Clean & Neat Ambience' : '',
+    ].filter(Boolean);
 
     try {
       const response = await fetch('/api/reviews/generate', {
@@ -70,6 +95,7 @@ export default function ScanPage() {
           businessId,
           rating,
           language,
+          aspects,
         }),
       });
 
@@ -272,41 +298,123 @@ export default function ScanPage() {
             : `گوگل پر اپنا تجربہ شیئر کریں تاکہ دوسرے ${business.name} کو دریافت کر سکیں`}
         </p>
 
-        {/* AI Draft Generator */}
+        {/* High rating (4-5 stars) - Google Review Funnel with Aspect Ratings (Transcript Flow) */}
         {aiDrafts.length === 0 ? (
-          <div className="card bg-primary-50 border-primary-100 mb-8">
-            <Sparkles className="w-12 h-12 mx-auto mb-4 text-primary-600" />
-            <h3 className={`font-bold mb-2 ${language === 'ur' ? 'font-urdu' : ''}`}>
-              {language === 'en' ? 'Need help writing your review?' : 'ریویو لکھنے میں مدد چاہیے؟'}
-            </h3>
-            <p className={`text-sm text-gray-600 mb-4 ${language === 'ur' ? 'font-urdu' : ''}`}>
-              {language === 'en'
-                ? 'Our AI can suggest review drafts based on your rating'
-                : 'ہماری AI آپ کی ریٹنگ کی بنیاد پر ریویو ڈرافٹ تجویز کر سکتی ہے'}
-            </p>
+          <div className="space-y-6 text-left max-w-lg mx-auto">
+            {/* Aspect Ratings (from video 4:03 - 4:22) */}
+            <div className="card bg-white shadow-sm border border-gray-200 p-5 space-y-4">
+              <h3 className="text-sm font-bold text-gray-900 border-b border-gray-100 pb-2">
+                {language === 'en' ? 'Rate specific aspects of your visit:' : 'اپنے دورے کے مختلف پہلوؤں کی درجہ بندی کریں:'}
+              </h3>
+
+              {[
+                { key: 'products' as const, label: language === 'en' ? 'Product Range & Quality' : 'پروڈکٹ کوالٹی اور ورائٹی' },
+                { key: 'staff' as const, label: language === 'en' ? 'Staff Behavior & Politeness' : 'عملے کا رویہ اور اخلاق' },
+                { key: 'pricing' as const, label: language === 'en' ? 'Pricing & Value for Money' : 'قیمت اور مناسب ریٹ' },
+                { key: 'billing' as const, label: language === 'en' ? 'Billing & Service Speed' : 'بلنگ اور سروس کی رفتار' },
+                { key: 'cleanliness' as const, label: language === 'en' ? 'Store Cleanliness & Ambience' : 'صفائی ستھرائی اور ماحول' },
+              ].map((aspect) => (
+                <div key={aspect.key} className="flex items-center justify-between">
+                  <span className="text-xs font-medium text-gray-700">{aspect.label}</span>
+                  <div className="flex gap-1">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() => setAspectRatings({ ...aspectRatings, [aspect.key]: star })}
+                        className="focus:outline-none"
+                      >
+                        <Star
+                          className={`w-5 h-5 transition-colors ${
+                            star <= aspectRatings[aspect.key]
+                              ? 'text-warning-500 fill-warning-500'
+                              : 'text-gray-200'
+                          }`}
+                        />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Quick-Tap Tags ("What was great?" from video 4:22 - 4:36) */}
+            <div className="card bg-white shadow-sm border border-gray-200 p-5">
+              <h3 className="text-sm font-bold text-gray-900 mb-2">
+                {language === 'en' ? 'What was great? (Tap to select)' : 'سب سے زیادہ کیا اچھا لگا؟'}
+              </h3>
+              <p className="text-xs text-gray-500 mb-3">
+                {language === 'en'
+                  ? 'Tap a few highlights so AI can craft your personalized review:'
+                  : 'چند خصوصیات منتخب کریں تاکہ AI آپ کا ریویو خود تیار کرے:'}
+              </p>
+
+              <div className="flex flex-wrap gap-2">
+                {[
+                  'Helpful Staff',
+                  'Clean Store',
+                  'Genuine Products',
+                  'Great Pricing',
+                  'Fast Billing',
+                  'Authentic Quality',
+                  'Wonderful Ambience',
+                  'Will Visit Again',
+                ].map((tag) => {
+                  const isSelected = selectedChips.includes(tag);
+                  return (
+                    <button
+                      key={tag}
+                      type="button"
+                      onClick={() => {
+                        if (isSelected) {
+                          setSelectedChips(selectedChips.filter((c) => c !== tag));
+                        } else {
+                          setSelectedChips([...selectedChips, tag]);
+                        }
+                      }}
+                      className={`text-xs px-3 py-1.5 rounded-full font-medium transition-all ${
+                        isSelected
+                          ? 'bg-primary-600 text-white shadow-xs'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                    >
+                      {isSelected ? '✓ ' : '+ '}
+                      {tag}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Generate AI Review Button */}
             <button
               onClick={generateAiDrafts}
               disabled={loading}
-              className="btn btn-primary"
+              className="btn btn-primary w-full py-3 text-sm flex items-center justify-center gap-2"
             >
               {loading ? (
                 <>
                   <div className="spinner mr-2" />
-                  {language === 'en' ? 'Generating...' : 'تخلیق ہو رہا ہے...'}
+                  {language === 'en' ? 'AI is drafting 3 reviews...' : 'AI ریویو تیار کر رہا ہے...'}
                 </>
               ) : (
                 <>
-                  <Sparkles className="w-5 h-5 mr-2" />
-                  {language === 'en' ? 'Generate AI Drafts' : 'AI ڈرافٹ بنائیں'}
+                  <Sparkles className="w-5 h-5 text-warning-300" />
+                  {language === 'en' ? 'Generate 3 AI Reviews Based on My Experience ✨' : 'میرے تجربے کے مطابق AI ریویو بنائیں ✨'}
                 </>
               )}
             </button>
           </div>
         ) : (
-          <div className="space-y-4 mb-8">
-            <p className={`text-sm text-gray-500 ${language === 'ur' ? 'font-urdu' : ''}`}>
-              {language === 'en' ? 'Choose a draft and copy:' : 'ایک ڈرافٹ منتخب کریں اور کاپی کریں:'}
-            </p>
+          <div className="space-y-4 mb-8 text-left max-w-lg mx-auto">
+            <div className="text-center mb-4">
+              <h3 className="font-bold text-base text-gray-900">
+                {language === 'en' ? 'Pick the best review draft:' : 'بہترین ڈرافٹ منتخب کریں:'}
+              </h3>
+              <p className="text-xs text-gray-500">
+                {language === 'en' ? 'Select one, copy and post on Google Maps in 5 seconds!' : 'ایک منتخب کریں، کاپی کریں اور 5 سیکنڈ میں گوگل پر پوسٹ کریں!'}
+              </p>
+            </div>
             
             {aiDrafts.map((draft, index) => (
               <div
@@ -314,52 +422,46 @@ export default function ScanPage() {
                 onClick={() => setSelectedDraft(index)}
                 className={`p-4 rounded-xl border-2 cursor-pointer transition-all ${
                   selectedDraft === index
-                    ? 'border-primary-500 bg-primary-50'
-                    : 'border-gray-200 hover:border-gray-300'
+                    ? 'border-primary-500 bg-primary-50/70 shadow-sm'
+                    : 'border-gray-200 hover:border-gray-300 bg-white'
                 }`}
               >
-                <p className={`text-sm ${language === 'ur' ? 'font-urdu text-right' : 'text-left'}`}>
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-[11px] font-bold text-primary-600">Draft #{index + 1}</span>
+                  {selectedDraft === index && (
+                    <span className="text-[10px] font-bold bg-primary-600 text-white px-2 py-0.5 rounded-full">Selected</span>
+                  )}
+                </div>
+                <p className={`text-xs text-gray-800 leading-relaxed ${language === 'ur' ? 'font-urdu text-right' : 'text-left'}`}>
                   {draft}
                 </p>
               </div>
             ))}
 
-            <div className="flex items-center justify-center gap-4 text-sm text-gray-500">
-              <Edit3 className="w-4 h-4" />
-              {language === 'en' 
-                ? 'You can edit this on Google before posting'
-                : 'آپ پوسٹ کرنے سے پہلے گوگل پر ایڈیٹ کر سکتے ہیں'}
+            <div className="pt-2 flex flex-col gap-3">
+              <button
+                onClick={() => {
+                  copyToClipboard(aiDrafts[selectedDraft]);
+                  goToGoogle();
+                }}
+                className="btn btn-primary w-full py-3.5 text-sm flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
+              >
+                <Copy className="w-4 h-4" />
+                {copied
+                  ? (language === 'en' ? 'Copied! Opening Google Maps...' : 'کاپی ہو گیا! گوگل میپس کھل رہا ہے...')
+                  : (language === 'en' ? 'Copy Review & Open Google Maps 🚀' : 'ریویو کاپی کریں اور گوگل میپس کھولیں 🚀')}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setAiDrafts([])}
+                className="text-xs text-gray-500 hover:text-gray-700 text-center py-1"
+              >
+                {language === 'en' ? '← Tweak Aspects & Regenerate' : '← دوبارہ منتخب کریں'}
+              </button>
             </div>
           </div>
         )}
-
-        {/* Copy & Go to Google */}
-        <div className="flex flex-col sm:flex-row gap-3">
-          {aiDrafts.length > 0 && (
-            <button
-              onClick={() => copyToClipboard(aiDrafts[selectedDraft])}
-              className="btn btn-secondary flex-1"
-            >
-              {copied ? (
-                <>
-                  <Check className="w-5 h-5 mr-2" />
-                  {language === 'en' ? 'Copied!' : 'کاپی ہو گیا!'}
-                </>
-              ) : (
-                <>
-                  <Copy className="w-5 h-5 mr-2" />
-                  {language === 'en' ? 'Copy Review' : 'ریویو کاپی کریں'}
-                </>
-              )}
-            </button>
-          )}
-          <button
-            onClick={goToGoogle}
-            className="btn btn-primary flex-1"
-          >
-            {language === 'en' ? 'Go to Google to Post' : 'پوسٹ کرنے کے لیے گوگل جائیں'}
-          </button>
-        </div>
       </div>
     );
   };
