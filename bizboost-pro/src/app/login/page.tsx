@@ -2,13 +2,16 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { signIn } from 'next-auth/react';
-import { TrendingUp, Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
+import { TrendingUp, Mail, Lock, Eye, EyeOff, ArrowRight, Check } from 'lucide-react';
 import Button from '@/components/ui/Button';
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const registered = searchParams?.get('registered');
+
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -61,6 +64,13 @@ export default function LoginPage() {
         {/* Form */}
         <div className="card">
           <form onSubmit={handleSubmit} className="space-y-5">
+            {registered && (
+              <div className="p-4 bg-emerald-50 text-emerald-700 rounded-lg text-sm flex items-center gap-2 border border-emerald-200">
+                <Check className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                <span>Account kamyabi se ban gaya hai! Ab apna email aur password daal kar sign in karein.</span>
+              </div>
+            )}
+
             {error && (
               <div className="p-4 bg-danger-50 text-danger-600 rounded-lg text-sm">
                 {error}
