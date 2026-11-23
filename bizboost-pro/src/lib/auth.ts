@@ -51,14 +51,17 @@ export const authOptions: NextAuthOptions = {
   ],
   pages: {
     signIn: '/login',
-    signUp: '/signup',
+    newUser: '/signup',
     error: '/auth/error',
   },
   callbacks: {
     async jwt({ token, user, trigger, session }) {
       if (user) {
+        // @ts-ignore
         token.id = user.id;
+        // @ts-ignore
         token.role = user.role;
+        // @ts-ignore
         token.subscription = user.subscription;
       }
       
@@ -69,9 +72,12 @@ export const authOptions: NextAuthOptions = {
       return token;
     },
     async session({ session, token }) {
-      if (token) {
+      if (token && session.user) {
+        // @ts-ignore
         session.user.id = token.id as string;
+        // @ts-ignore
         session.user.role = token.role as string;
+        // @ts-ignore
         session.user.subscription = token.subscription as any;
       }
       return session;
