@@ -1,0 +1,14 @@
+# Cloudflare Pages Configuration
+name = "bizboost-pro"
+compatibility_date = "2024-01-01"
+
+# Pages build output
+pages_build_output_dir = "out"
+
+# Environment variables (will be overridden by Cloudflare dashboard)
+[vars]
+NEXT_PUBLIC_APP_NAME = "BizBoost Pro"
+
+# Production environment
+[env.production]
+name = "bizboost-pro"

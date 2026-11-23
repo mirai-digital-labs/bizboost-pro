@@ -1,0 +1,381 @@
+// Prisma Schema for BizBoost Pro
+// Supports SQLite (dev), PostgreSQL (production), and Cloudflare D1
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// USER & AUTHENTICATION
+// ============================================
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  password      String?
+  phone         String?
+  avatar        String?
+  emailVerified DateTime?
+  role          UserRole  @default(USER)
+  status        UserStatus @default(ACTIVE)
+  language      String    @default("en")
+  country       String?
+  currency      String    @default("USD")
+  
+  // Subscription
+  subscription  Subscription?
+  
+  // Business Relations
+  businesses    Business[]
+  
+  // Review Relations
+  reviews       Review[]
+  
+  // Timestamps
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  @@map("users")
+}
+
+enum UserRole {
+  USER
+  BUSINESS
+  AGENCY
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+// ============================================
+// SUBSCRIPTION & BILLING
+// ============================================
+
+model Subscription {
+  id              String        @id @default(cuid())
+  userId          String        @unique
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Plan Details
+  plan            PlanType      @default(STARTER)
+  status          SubscriptionStatus @default(ACTIVE)
+  
+  // Stripe
+  stripeCustomerId    String?
+  stripeSubscriptionId String?
+  stripePriceId       String?
+  
+  // Usage Limits
+  locationsUsed       Int       @default(0)
+  reviewsUsed         Int       @default(0)
+  
+  // Billing Cycle
+  currentPeriodStart  DateTime?
+  currentPeriodEnd    DateTime?
+  cancelAtPeriodEnd   Boolean   @default(false)
+  
+  // Timestamps
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  
+  @@map("subscriptions")
+}
+
+enum PlanType {
+  STARTER    // Free - 1 location, 5 reviews/month
+  PRO        // PKR 1000 / $5 / $10
+  BUSINESS   // PKR 2000 / $10 / $20
+  AGENCY     // PKR 5000 / $25 / $50
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELLED
+  INCOMPLETE
+}
+
+// ============================================
+// BUSINESS PROFILE
+// ============================================
+
+model Business {
+  id              String        @id @default(cuid())
+  userId          String
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Basic Info
+  name            String
+  description     String?
+  category        String?
+  phone           String?
+  email           String?
+  website         String?
+  
+  // Address
+  address         String?
+  city            String?
+  state           String?
+  country         String?
+  postalCode      String?
+  latitude        Float?
+  longitude       Float?
+  
+  // Google Business Profile
+  googlePlaceId   String?       @unique
+  googleReviewUrl String?
+  googleRating    Float?
+  totalReviews    Int           @default(0)
+  
+  // QR Code
+  qrCodeUrl       String?
+  qrCodeData      String?
+  
+  // Settings
+  reviewThreshold Int           @default(3)  // 1-3 stars = private
+  isActive        Boolean       @default(true)
+  
+  // Profile Score
+  profileScore    Int           @default(0)  // 0-100
+  
+  // Relations
+  reviews         Review[]
+  posts           Post[]
+  photos          Photo[]
+  feedbacks       Feedback[]
+  
+  // Timestamps
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  
+  @@index([userId])
+  @@index([googlePlaceId])
+  @@map("businesses")
+}
+
+// ============================================
+// REVIEWS
+// ============================================
+
+model Review {
+  id              String        @id @default(cuid())
+  businessId      String
+  business        Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  userId          String?
+  user            User?         @relation(fields: [userId], references: [id])
+  
+  // Review Data
+  rating          Int           // 1-5
+  customerName    String?
+  customerPhone   String?
+  customerEmail   String?
+  
+  // Content
+  originalText    String?
+  aiGeneratedText String?
+  finalText       String?
+  
+  // Status
+  status          ReviewStatus  @default(PENDING)
+  isPublic        Boolean       @default(false)
+  googleReviewId  String?
+  
+  // Language
+  language        String        @default("en")
+  
+  // Timestamps
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  postedAt        DateTime?
+  
+  @@index([businessId])
+  @@index([status])
+  @@map("reviews")
+}
+
+enum ReviewStatus {
+  PENDING
+  PRIVATE
+  DRAFTED
+  PUBLISHED
+  REJECTED
+}
+
+// ============================================
+// PRIVATE FEEDBACK
+// ============================================
+
+model Feedback {
+  id              String        @id @default(cuid())
+  businessId      String
+  business        Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  
+  // Customer Info
+  customerName    String?
+  customerPhone   String?
+  customerEmail   String?
+  
+  // Feedback
+  rating          Int           // 1-3 stars
+  message         String?
+  
+  // Response
+  response        String?
+  respondedAt     DateTime?
+  isResolved      Boolean       @default(false)
+  
+  // Timestamps
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  
+  @@index([businessId])
+  @@index([isResolved])
+  @@map("feedbacks")
+}
+
+// ============================================
+// POSTS (Google Business Updates)
+// ============================================
+
+model Post {
+  id              String        @id @default(cuid())
+  businessId      String
+  business        Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  
+  // Content
+  title           String?
+  content         String
+  type            PostType      @default(UPDATE)
+  imageUrl        String?
+  
+  // AI Generated
+  aiGenerated     Boolean       @default(false)
+  
+  // Scheduling
+  scheduledAt     DateTime?
+  publishedAt     DateTime?
+  
+  // Status
+  status          PostStatus    @default(DRAFT)
+  
+  // Timestamps
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  
+  @@index([businessId])
+  @@index([status])
+  @@map("posts")
+}
+
+enum PostType {
+  UPDATE
+  OFFER
+  EVENT
+  PRODUCT
+}
+
+enum PostStatus {
+  DRAFT
+  SCHEDULED
+  PUBLISHED
+  ARCHIVED
+}
+
+// ============================================
+// PHOTOS
+// ============================================
+
+model Photo {
+  id              String        @id @default(cuid())
+  businessId      String
+  business        Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  
+  // Photo Data
+  url             String
+  thumbnailUrl    String?
+  caption         String?
+  
+  // Category
+  category        PhotoCategory @default(OTHER)
+  
+  // Metadata
+  width           Int?
+  height          Int?
+  size            Int?
+  
+  // Timestamps
+  createdAt       DateTime      @default(now())
+  
+  @@index([businessId])
+  @@map("photos")
+}
+
+enum PhotoCategory {
+  EXTERIOR
+  INTERIOR
+  PRODUCT
+  TEAM
+  MENU
+  OTHER
+}
+
+// ============================================
+// ANALYTICS
+// ============================================
+
+model Analytics {
+  id              String        @id @default(cuid())
+  businessId      String
+  
+  // Metrics
+  date            DateTime
+  views           Int           @default(0)
+  searches        Int           @default(0)
+  calls           Int           @default(0)
+  directionRequests Int         @default(0)
+  websiteClicks   Int           @default(0)
+  
+  // Reviews
+  newReviews      Int           @default(0)
+  averageRating   Float?
+  
+  // Timestamps
+  createdAt       DateTime      @default(now())
+  
+  @@unique([businessId, date])
+  @@index([businessId])
+  @@map("analytics")
+}
+
+// ============================================
+// QR CODE SCANS
+// ============================================
+
+model QRScan {
+  id              String        @id @default(cuid())
+  businessId      String
+  
+  // Device Info
+  deviceType      String?
+  browser         String?
+  os              String?
+  country         String?
+  city            String?
+  
+  // Timestamps
+  scannedAt       DateTime      @default(now())
+  
+  @@index([businessId])
+  @@index([scannedAt])
+  @@map("qr_scans")
+}
