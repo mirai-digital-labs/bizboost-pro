@@ -6,11 +6,284 @@ import {
   Users, Star, TrendingUp, Bell, LogOut, Plus, Eye, Phone,
   MapPin, Calendar, ChevronRight, ExternalLink, Download,
   CheckCircle, Shield, Sparkles, X, Check, Copy, RefreshCw,
-  Sliders, MessageCircle, Search, Loader2, Printer, Building2
+  Sliders, MessageCircle, Search, Loader2, Printer, Building2,
+  ShieldCheck, Upload, Palette, Image as ImageIcon
 } from 'lucide-react';
 import Link from 'next/link';
 import { signOut, useSession } from 'next-auth/react';
 import QRCode from 'qrcode';
+
+// Color adjustment helper
+function adjustColorBrightness(hex: string, percent: number): string {
+  try {
+    const num = parseInt(hex.replace('#', ''), 16);
+    const amt = Math.round(2.55 * percent);
+    const R = (num >> 16) + amt;
+    const G = ((num >> 8) & 0x00ff) + amt;
+    const B = (num & 0x0000ff) + amt;
+    return (
+      '#' +
+      (
+        0x1000000 +
+        (R < 255 ? (R < 1 ? 0 : R) : 255) * 0x10000 +
+        (G < 255 ? (G < 1 ? 0 : G) : 255) * 0x100 +
+        (B < 255 ? (B < 1 ? 0 : B) : 255)
+      )
+        .toString(16)
+        .slice(1)
+    );
+  } catch {
+    return hex;
+  }
+}
+
+// Rounded rectangle drawing helper
+function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+// Client-side QR generation with Brand Logo centered
+async function generateBrandedQRCode(
+  scanUrl: string,
+  color: string,
+  logoUrl?: string,
+  brandInitial?: string
+): Promise<string> {
+  if (typeof window === 'undefined') return '';
+  return new Promise((resolve) => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 440;
+    canvas.height = 440;
+
+    QRCode.toCanvas(
+      canvas,
+      scanUrl,
+      {
+        width: 440,
+        margin: 2,
+        color: { dark: color || '#1d4ed8', light: '#ffffff' },
+        errorCorrectionLevel: 'H',
+      },
+      (error) => {
+        if (error) {
+          QRCode.toDataURL(scanUrl, { width: 440, margin: 2, color: { dark: color || '#1d4ed8', light: '#ffffff' } })
+            .then(resolve)
+            .catch(() => resolve(''));
+          return;
+        }
+
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve(canvas.toDataURL('image/png'));
+          return;
+        }
+
+        const cx = canvas.width / 2;
+        const cy = canvas.height / 2;
+        const radius = 52;
+
+        if (logoUrl) {
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          img.onload = () => {
+            // White circular background for logo with drop shadow
+            ctx.save();
+            ctx.shadowColor = 'rgba(0,0,0,0.2)';
+            ctx.shadowBlur = 12;
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.arc(cx, cy, radius + 5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+
+            // Circular Brand Color Ring
+            ctx.strokeStyle = color || '#1d4ed8';
+            ctx.lineWidth = 3.5;
+            ctx.beginPath();
+            ctx.arc(cx, cy, radius + 2, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // Clip and draw logo image
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+            ctx.clip();
+            ctx.drawImage(img, cx - radius, cy - radius, radius * 2, radius * 2);
+            ctx.restore();
+
+            resolve(canvas.toDataURL('image/png'));
+          };
+          img.onerror = () => {
+            drawMonogram(ctx, cx, cy, radius, color, brandInitial);
+            resolve(canvas.toDataURL('image/png'));
+          };
+          img.src = logoUrl;
+        } else {
+          drawMonogram(ctx, cx, cy, radius, color, brandInitial);
+          resolve(canvas.toDataURL('image/png'));
+        }
+      }
+    );
+  });
+}
+
+function drawMonogram(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  cy: number,
+  radius: number,
+  color: string,
+  initial?: string
+) {
+  ctx.save();
+  ctx.shadowColor = 'rgba(0,0,0,0.18)';
+  ctx.shadowBlur = 10;
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius + 5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+
+  ctx.strokeStyle = color || '#1d4ed8';
+  ctx.lineWidth = 3.5;
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius + 2, 0, Math.PI * 2);
+  ctx.stroke();
+
+  ctx.fillStyle = color || '#1d4ed8';
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius - 2, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 36px Inter, system-ui, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  const text = (initial || '⭐').slice(0, 2).toUpperCase();
+  ctx.fillText(text, cx, cy + 2);
+}
+
+// Generate complete High-Res Printable Tabletop Standee Poster (800x1100 px)
+async function generateTabletopStandeeImage({
+  businessName,
+  qrDataUrl,
+  logoUrl,
+  brandColor,
+  category,
+}: {
+  businessName: string;
+  qrDataUrl: string;
+  logoUrl?: string;
+  brandColor: string;
+  category: string;
+}): Promise<string> {
+  if (typeof window === 'undefined') return qrDataUrl;
+  const canvas = document.createElement('canvas');
+  canvas.width = 800;
+  canvas.height = 1100;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return qrDataUrl;
+
+  const mainColor = brandColor || '#dc2626';
+  const darkerColor = adjustColorBrightness(mainColor, -25);
+
+  // Background Gradient
+  const grad = ctx.createLinearGradient(0, 0, 0, 1100);
+  grad.addColorStop(0, mainColor);
+  grad.addColorStop(0.32, darkerColor);
+  grad.addColorStop(0.32, '#f8fafc');
+  grad.addColorStop(1, '#f1f5f9');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, 800, 1100);
+
+  // Top Header Area
+  ctx.fillStyle = '#ffffff';
+  ctx.textAlign = 'center';
+
+  // Subtitle
+  ctx.font = 'bold 20px Inter, sans-serif';
+  ctx.fillText('⭐ REVIEW US ON GOOGLE ⭐', 400, 65);
+
+  // Business Name
+  ctx.font = 'bold 36px Inter, sans-serif';
+  ctx.fillText(businessName, 400, 118);
+
+  // Category
+  ctx.font = '500 18px Inter, sans-serif';
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+  ctx.fillText(category || 'Verified Google Profile', 400, 152);
+
+  // Standee Acrylic Card
+  ctx.save();
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.15)';
+  ctx.shadowBlur = 30;
+  ctx.shadowOffsetY = 15;
+  ctx.fillStyle = '#ffffff';
+  roundRect(ctx, 110, 200, 580, 710, 28);
+  ctx.fill();
+  ctx.restore();
+
+  // Border on Card
+  ctx.strokeStyle = '#e2e8f0';
+  ctx.lineWidth = 2;
+  roundRect(ctx, 110, 200, 580, 710, 28);
+  ctx.stroke();
+
+  // Stars & Instructions
+  ctx.fillStyle = '#f59e0b';
+  ctx.font = '34px sans-serif';
+  ctx.fillText('★ ★ ★ ★ ★', 400, 260);
+
+  ctx.fillStyle = '#0f172a';
+  ctx.font = 'bold 26px Inter, sans-serif';
+  ctx.fillText('Point your phone camera here', 400, 305);
+
+  ctx.fillStyle = '#64748b';
+  ctx.font = '16px Inter, sans-serif';
+  ctx.fillText('Share your experience in 10 seconds', 400, 335);
+
+  // Draw QR Image
+  if (qrDataUrl) {
+    const qrImg = new Image();
+    qrImg.crossOrigin = 'anonymous';
+    await new Promise((res) => {
+      qrImg.onload = res;
+      qrImg.onerror = res;
+      qrImg.src = qrDataUrl;
+    });
+    ctx.drawImage(qrImg, 190, 370, 420, 420);
+  }
+
+  // Bottom Pill on Card
+  ctx.fillStyle = mainColor;
+  roundRect(ctx, 220, 830, 360, 46, 23);
+  ctx.fill();
+
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 17px Inter, sans-serif';
+  ctx.fillText('⚡ AI Review Assistant Included', 400, 859);
+
+  // Footer text
+  ctx.fillStyle = '#64748b';
+  ctx.font = '600 17px Inter, sans-serif';
+  ctx.fillText('Thank you for supporting our local business!', 400, 970);
+
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '14px Inter, sans-serif';
+  ctx.fillText('Powered by BizBoost Pro', 400, 1005);
+
+  return canvas.toDataURL('image/png');
+}
 
 export default function DashboardPage() {
   const { data: session } = useSession();
@@ -24,10 +297,55 @@ export default function DashboardPage() {
   const [replyText, setReplyText] = useState('');
   const [generatingReply, setGeneratingReply] = useState(false);
 
-  // QR Code Tab State
-  const [qrColor, setQrColor] = useState('#1d4ed8');
+  // QR Code Tab State & Brand Theme Customization
+  const [qrColor, setQrColor] = useState('#dc2626');
+  const [standeeColor, setStandeeColor] = useState('#dc2626');
+  const [brandLogo, setBrandLogo] = useState<string | null>(null);
+  const [ownerVerified, setOwnerVerified] = useState<boolean>(true);
+  const [standeePosterUrl, setStandeePosterUrl] = useState<string>('');
   const [selectedBusinessId, setSelectedBusinessId] = useState('kb-1');
   const [generatedQrUrl, setGeneratedQrUrl] = useState('');
+
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (uploadEvent) => {
+      const res = uploadEvent.target?.result as string;
+      setBrandLogo(res);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const setPresetBrandEmoji = (emoji: string) => {
+    if (typeof window === 'undefined') return;
+    const canvas = document.createElement('canvas');
+    canvas.width = 120;
+    canvas.height = 120;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(60, 60, 56, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = standeeColor || '#dc2626';
+    ctx.lineWidth = 4;
+    ctx.stroke();
+
+    ctx.font = '60px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(emoji, 60, 68);
+    setBrandLogo(canvas.toDataURL('image/png'));
+  };
+
+  const handleDownloadStandee = (name: string) => {
+    if (!standeePosterUrl) return;
+    const link = document.createElement('a');
+    link.download = `BizBoost-Standee-${name.toLowerCase().replace(/\s+/g, '-')}.png`;
+    link.href = standeePosterUrl;
+    link.click();
+  };
 
   // Business state
   const [businesses, setBusinesses] = useState([
@@ -85,19 +403,26 @@ export default function DashboardPage() {
 
   const [settingsSaved, setSettingsSaved] = useState(false);
 
-  // Generate QR when selected business or color changes
+  // Generate QR when selected business, color or brand logo changes
   useEffect(() => {
     const origin = typeof window !== 'undefined' ? window.location.origin : 'https://bizboost-pro.vercel.app';
     const scanUrl = `${origin}/scan/${selectedBusinessId}`;
+    const curBiz = businesses.find(b => b.id === selectedBusinessId);
+    const initial = curBiz?.name || 'FB';
 
-    QRCode.toDataURL(scanUrl, {
-      width: 360,
-      margin: 2,
-      color: { dark: qrColor, light: '#ffffff' },
-    })
-      .then(url => setGeneratedQrUrl(url))
+    generateBrandedQRCode(scanUrl, qrColor, brandLogo || undefined, initial)
+      .then(url => {
+        setGeneratedQrUrl(url);
+        generateTabletopStandeeImage({
+          businessName: curBiz?.name || 'Your Business',
+          qrDataUrl: url,
+          logoUrl: brandLogo || undefined,
+          brandColor: qrColor,
+          category: curBiz?.category || 'Fast food restaurant',
+        }).then(poster => setStandeePosterUrl(poster)).catch(err => console.warn(err));
+      })
       .catch(err => console.warn('QR error:', err));
-  }, [selectedBusinessId, qrColor]);
+  }, [selectedBusinessId, qrColor, brandLogo]);
 
   // Debounced Google Places Search (ReviewBro Feature)
   useEffect(() => {
@@ -128,7 +453,7 @@ export default function DashboardPage() {
 
   const handleSelectGooglePlace = (place: any) => {
     setSelectedPlace(place);
-    const cityName = place.city || 'Pune';
+    const cityName = place.city || 'Jhang';
     
     // Dynamic high-converting Local SEO keywords tailored to category & city
     let autoKeywords = ['Helpful Staff', 'Affordable Pricing', 'High Quality'];
@@ -201,16 +526,21 @@ export default function DashboardPage() {
     setBusinesses([newBiz, ...businesses]);
     setSelectedBusinessId(newId);
 
-    // Generate QR in one instant ("Ek Jhatke Mein")
+    // Generate Branded QR in one instant ("Ek Jhatke Mein") with centered logo
     try {
       const origin = typeof window !== 'undefined' ? window.location.origin : 'https://bizboost-pro.vercel.app';
       const scanUrl = `${origin}/scan/${newId}`;
-      const qrDataUrl = await QRCode.toDataURL(scanUrl, {
-        width: 380,
-        margin: 2,
-        color: { dark: qrColor, light: '#ffffff' },
+      const brandedQr = await generateBrandedQRCode(scanUrl, standeeColor, brandLogo || undefined, finalName);
+      setCreatedBizQr(brandedQr);
+
+      const standeePoster = await generateTabletopStandeeImage({
+        businessName: finalName,
+        qrDataUrl: brandedQr,
+        logoUrl: brandLogo || undefined,
+        brandColor: standeeColor,
+        category: newBusinessForm.category,
       });
-      setCreatedBizQr(qrDataUrl);
+      setStandeePosterUrl(standeePoster);
     } catch (err) {
       console.warn('QR gen error in wizard:', err);
     }
@@ -567,64 +897,164 @@ export default function DashboardPage() {
                     </select>
                   </div>
 
-                  <div>
-                    <label className="label text-xs">QR Code Brand Color</label>
+                  {/* Brand Logo Upload in Tab 2 */}
+                  <div className="p-3 bg-gray-50 rounded-xl space-y-2 border border-gray-200">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-gray-900 flex items-center gap-1.5">
+                        <Palette className="w-4 h-4 text-primary-600" />
+                        Brand Logo & Center QR Icon
+                      </label>
+                      {brandLogo && (
+                        <button
+                          type="button"
+                          onClick={() => setBrandLogo(null)}
+                          className="text-[10px] text-red-500 hover:underline"
+                        >
+                          Remove Logo
+                        </button>
+                      )}
+                    </div>
+
                     <div className="flex items-center gap-3">
+                      <label className="cursor-pointer flex-shrink-0">
+                        <div className="w-14 h-14 rounded-xl bg-white border-2 border-dashed border-gray-300 hover:border-primary-500 flex items-center justify-center overflow-hidden shadow-xs">
+                          {brandLogo ? (
+                            <img src={brandLogo} alt="Logo" className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="text-center">
+                              <Upload className="w-4 h-4 text-gray-400 mx-auto" />
+                              <span className="text-[8px] text-gray-500 font-medium block">Logo</span>
+                            </div>
+                          )}
+                        </div>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleLogoUpload}
+                          className="hidden"
+                        />
+                      </label>
+
+                      <div className="space-y-1">
+                        <div className="text-xs font-semibold text-gray-800">
+                          {brandLogo ? 'Custom Logo Active' : 'Click to Upload Logo'}
+                        </div>
+                        <div className="flex flex-wrap gap-1">
+                          {[
+                            { label: '🍗 Fri Chicks', emoji: '🍗' },
+                            { label: '🥩 BBQ Grill', emoji: '🥩' },
+                            { label: '🍚 Biryani', emoji: '🍚' },
+                            { label: '🛍️ Retail', emoji: '🛍️' },
+                          ].map((p, i) => (
+                            <button
+                              key={i}
+                              type="button"
+                              onClick={() => setPresetBrandEmoji(p.emoji)}
+                              className="text-[10px] px-2 py-0.5 rounded-full bg-white border border-gray-200 hover:border-primary-400 text-gray-700"
+                            >
+                              {p.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="label text-xs">Standee & QR Brand Theme Color</label>
+                    <div className="flex items-center gap-2.5">
                       {[
+                        { name: 'Fri Chicks Red', color: '#dc2626' },
                         { name: 'Royal Blue', color: '#1d4ed8' },
                         { name: 'Emerald Green', color: '#059669' },
+                        { name: 'Warm Amber', color: '#d97706' },
                         { name: 'Classic Dark', color: '#111827' },
-                        { name: 'Warm Red', color: '#dc2626' },
                       ].map((c) => (
                         <button
                           key={c.color}
-                          onClick={() => setQrColor(c.color)}
+                          onClick={() => {
+                            setQrColor(c.color);
+                            setStandeeColor(c.color);
+                          }}
                           style={{ backgroundColor: c.color }}
-                          className={`w-9 h-9 rounded-xl flex items-center justify-center transition-transform ${
+                          className={`w-8 h-8 rounded-xl flex items-center justify-center transition-transform ${
                             qrColor === c.color ? 'scale-110 ring-2 ring-offset-2 ring-primary-500' : ''
                           }`}
                           title={c.name}
                         >
-                          {qrColor === c.color && <Check className="w-4 h-4 text-white" />}
+                          {qrColor === c.color && <Check className="w-3.5 h-3.5 text-white" />}
                         </button>
                       ))}
                     </div>
                   </div>
 
-                  <div className="p-4 bg-gray-50 rounded-xl space-y-2 text-xs text-gray-600">
-                    <div className="font-bold text-gray-900">Print Instructions:</div>
-                    <div>• Recommended size for Table Tent: <b>4" × 6" inches</b></div>
-                    <div>• Recommended size for Bill Book sticker: <b>2" × 2" inches</b></div>
+                  <div className="p-3 bg-gray-50 rounded-xl space-y-1 text-xs text-gray-600 border border-gray-200">
+                    <div className="font-bold text-gray-900">Printing Tips:</div>
+                    <div>• Tabletop Standee (Acrylic Stand): <b>4" × 6" inches (A6)</b></div>
+                    <div>• Bill Book Folder Sticker: <b>2" × 2" inches</b></div>
                   </div>
 
-                  <div className="pt-2 flex gap-3">
+                  <div className="pt-2 flex flex-wrap gap-2">
+                    {standeePosterUrl && (
+                      <button
+                        type="button"
+                        onClick={() => handleDownloadStandee(businesses.find(b => b.id === selectedBusinessId)?.name || 'Standee')}
+                        className="btn btn-primary flex-1 text-xs py-2.5 flex items-center justify-center gap-1.5"
+                      >
+                        <Download className="w-4 h-4" />
+                        Download Standee PNG
+                      </button>
+                    )}
                     <a
                       href={generatedQrUrl}
                       download={`bizboost-qr-${selectedBusinessId}.png`}
-                      className="btn btn-primary flex-1 text-xs py-2.5 flex items-center justify-center gap-2"
+                      className="btn btn-secondary flex-1 text-xs py-2.5 flex items-center justify-center gap-1.5"
                     >
                       <Download className="w-4 h-4" />
-                      Download High-Res PNG
+                      Download QR
                     </a>
-                    <Link
-                      href={`/scan/${selectedBusinessId}`}
-                      target="_blank"
-                      className="btn btn-secondary text-xs py-2.5 px-4 flex items-center justify-center gap-2"
+                    <button
+                      type="button"
+                      onClick={() => window.print()}
+                      className="btn btn-outline text-xs py-2.5 px-3 flex items-center justify-center gap-1.5"
                     >
-                      <ExternalLink className="w-4 h-4" />
-                      Live Test
-                    </Link>
+                      <Printer className="w-4 h-4" />
+                      Print
+                    </button>
                   </div>
                 </div>
 
                 <div className="text-center bg-gray-50/70 p-6 rounded-2xl border border-gray-200">
-                  <div className="p-4 bg-white rounded-2xl shadow-md inline-block mb-3">
-                    <img src={generatedQrUrl} alt="QR Code" className="w-60 h-60 mx-auto" />
+                  {/* Standee Preview */}
+                  <div
+                    style={{
+                      background: `linear-gradient(145deg, ${standeeColor}, ${adjustColorBrightness(standeeColor, -25)})`,
+                    }}
+                    className="max-w-[240px] mx-auto p-4 rounded-2xl text-white shadow-xl text-center mb-3"
+                  >
+                    <div className="flex items-center justify-center gap-1.5 mb-1.5">
+                      {brandLogo ? (
+                        <img src={brandLogo} alt="Logo" className="w-7 h-7 rounded-full bg-white object-cover p-0.5 border border-white/50" />
+                      ) : (
+                        <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center text-xs font-bold">
+                          {(businesses.find(b => b.id === selectedBusinessId)?.name || 'FC').slice(0, 2).toUpperCase()}
+                        </div>
+                      )}
+                      <div className="text-left truncate text-xs font-bold">
+                        {businesses.find(b => b.id === selectedBusinessId)?.name}
+                      </div>
+                    </div>
+                    <div className="bg-white p-2.5 rounded-xl shadow-md inline-block my-1">
+                      <img src={generatedQrUrl} alt="QR Code" className="w-40 h-40 mx-auto" />
+                    </div>
+                    <div className="text-[10px] font-bold text-white uppercase tracking-wider mt-1">Review Us on Google</div>
+                    <div className="text-[10px] text-white/80">⚡ AI-Powered Reviews</div>
                   </div>
+
                   <div className="font-bold text-sm text-gray-900">
                     {businesses.find(b => b.id === selectedBusinessId)?.name}
                   </div>
-                  <div className="text-xs text-gray-500 mt-1">Ready for Print & Digital Display</div>
+                  <div className="text-xs text-gray-500 mt-0.5">Customized Table Standee with Centered Brand Logo</div>
                 </div>
               </div>
             </div>
@@ -756,15 +1186,23 @@ export default function DashboardPage() {
         {/* Tab 5: PRIVATE COMPLAINTS (1-3 Stars) */}
         {activeTab === 'customers' && (
           <div className="p-6 space-y-6">
-            <div className="card border border-gray-100 bg-warning-50/50">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-warning-100 text-warning-700 flex items-center justify-center font-bold">
-                  <Shield className="w-5 h-5" />
+            <div className="card border border-emerald-200 bg-emerald-50/60 p-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold flex-shrink-0">
+                    <ShieldCheck className="w-5 h-5 text-emerald-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-sm text-gray-900">Protected Private Complaints Inbox (1-3 Stars)</h3>
+                    <p className="text-xs text-gray-600">
+                      These reviews are <b>never posted to Google</b>. Only you (the authenticated owner: <b>{session?.user?.email || 'mahzare.official@gmail.com'}</b>) can view these private complaints.
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-bold text-sm text-gray-900">Protected Private Complaints Inbox</h3>
-                  <p className="text-xs text-gray-600">These customers had issues. Contact them directly to resolve their complaint before they write publicly.</p>
-                </div>
+                <span className="text-[10px] font-bold px-2.5 py-1 bg-emerald-600 text-white rounded-full flex items-center gap-1 flex-shrink-0">
+                  <Check className="w-3 h-3" />
+                  Owner Access Verified
+                </span>
               </div>
             </div>
 
@@ -994,9 +1432,11 @@ export default function DashboardPage() {
                   </label>
 
                   <div className="relative">
-                    <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">
-                      <Search className="w-4 h-4" />
-                    </div>
+                    {!placesQuery && (
+                      <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+                        <Search className="w-4 h-4" />
+                      </div>
+                    )}
                     <input
                       type="text"
                       value={placesQuery}
@@ -1009,7 +1449,9 @@ export default function DashboardPage() {
                         }
                       }}
                       placeholder="e.g. Fri Chicks Jhang, Kababjees, Savour Foods, or Al Rehman Biryani..."
-                      className="input pl-10 pr-10 text-sm bg-white text-gray-900"
+                      className={`input pr-10 text-sm bg-white text-gray-900 transition-all ${
+                        placesQuery ? 'pl-3.5' : 'pl-10'
+                      }`}
                       autoFocus
                     />
                     {placesQuery && (
@@ -1167,19 +1609,47 @@ export default function DashboardPage() {
                   )}
                 </div>
 
-                {/* Manager Contact Number / WhatsApp for Negative Review Shield Alerts */}
-                <div>
-                  <label className="label text-xs">Manager Phone / WhatsApp (For Review Alerts)</label>
-                  <input
-                    type="text"
-                    value={newBusinessForm.phone}
-                    onChange={(e) => setNewBusinessForm({ ...newBusinessForm, phone: e.target.value })}
-                    placeholder="e.g. +92 300 1234567 or 0321 9876543"
-                    className="input text-sm bg-white text-gray-900"
-                  />
-                  <p className="text-[10px] text-gray-400 mt-1">
-                    When a customer gives 1-3 stars, an instant alert will be sent here so you can resolve it privately.
-                  </p>
+                {/* Manager Contact Number & Owner Authentication Shield */}
+                <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5 text-xs font-bold text-gray-900">
+                      <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                      <span>Owner Authentication & Alert Security</span>
+                    </div>
+                    <span className="text-[10px] font-bold px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                      Verified Session
+                    </span>
+                  </div>
+
+                  <div>
+                    <label className="label text-xs">Manager WhatsApp / Phone (For Private Negative Review Alerts)</label>
+                    <input
+                      type="text"
+                      value={newBusinessForm.phone}
+                      onChange={(e) => setNewBusinessForm({ ...newBusinessForm, phone: e.target.value })}
+                      placeholder="e.g. +92 300 1234567 or 0321 9876543"
+                      className="input text-sm bg-white text-gray-900"
+                    />
+                    <p className="text-[10px] text-gray-500 mt-1">
+                      When a customer gives 1-3 stars, confidential alerts are routed strictly to this verified manager number.
+                    </p>
+                  </div>
+
+                  <label className="flex items-start gap-2.5 cursor-pointer pt-1 bg-white p-2.5 rounded-lg border border-gray-200">
+                    <input
+                      type="checkbox"
+                      checked={ownerVerified}
+                      onChange={(e) => setOwnerVerified(e.target.checked)}
+                      className="mt-0.5 rounded border-gray-300 text-primary-600 focus:ring-primary-500 w-4 h-4"
+                    />
+                    <div className="text-[11px] text-gray-700 leading-snug">
+                      <strong>I verify that I am the authorized owner / manager of this business profile.</strong>
+                      <div className="text-[10px] text-gray-500 mt-0.5">
+                        Private customer details and negative feedback are encrypted and restricted solely to your authenticated account.
+                      </div>
+                    </div>
+                  </label>
                 </div>
 
                 <div className="pt-3 flex gap-3">
@@ -1259,6 +1729,104 @@ export default function DashboardPage() {
                       className="input text-xs bg-white text-gray-900"
                       placeholder="e.g. Jhang, Karachi, Lahore or Islamabad"
                     />
+                  </div>
+                </div>
+
+                {/* Brand Logo & Tabletop Standee Theme Customization */}
+                <div className="p-3.5 bg-gradient-to-r from-slate-50 to-blue-50/50 rounded-xl border border-gray-200 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5 text-xs font-bold text-gray-900">
+                      <Palette className="w-4 h-4 text-primary-600" />
+                      <span>Brand Logo & Tabletop Standee Theme</span>
+                    </div>
+                    <span className="text-[10px] text-gray-500">Center of QR & Standee Header</span>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <label className="relative group cursor-pointer flex-shrink-0">
+                      <div className="w-16 h-16 rounded-2xl bg-white border-2 border-dashed border-gray-300 group-hover:border-primary-500 flex items-center justify-center overflow-hidden shadow-xs">
+                        {brandLogo ? (
+                          <img src={brandLogo} alt="Logo" className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="text-center p-1">
+                            <Upload className="w-4 h-4 text-gray-400 mx-auto mb-0.5" />
+                            <span className="text-[9px] text-gray-500 font-medium block">Upload Logo</span>
+                          </div>
+                        )}
+                      </div>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleLogoUpload}
+                        className="hidden"
+                      />
+                    </label>
+
+                    <div className="flex-1 space-y-1">
+                      <div className="text-xs font-semibold text-gray-800">
+                        {brandLogo ? 'Brand Logo Attached ✓' : 'Upload restaurant or shop logo (PNG / JPG)'}
+                      </div>
+                      <p className="text-[10px] text-gray-500 leading-tight">
+                        Appears centered inside your QR code & on your tabletop standee.
+                      </p>
+
+                      <div className="flex flex-wrap items-center gap-1 pt-1">
+                        <span className="text-[10px] text-gray-400">Sample Badges:</span>
+                        {[
+                          { label: '🍗 Crispy Chicken', emoji: '🍗' },
+                          { label: '🥩 BBQ Grill', emoji: '🥩' },
+                          { label: '🍚 Biryani House', emoji: '🍚' },
+                          { label: '🛍️ Retail', emoji: '🛍️' },
+                        ].map((p, i) => (
+                          <button
+                            key={i}
+                            type="button"
+                            onClick={() => setPresetBrandEmoji(p.emoji)}
+                            className="text-[10px] px-2 py-0.5 rounded-full bg-white border border-gray-200 hover:border-primary-400 text-gray-700 font-medium"
+                          >
+                            {p.label}
+                          </button>
+                        ))}
+                        {brandLogo && (
+                          <button
+                            type="button"
+                            onClick={() => setBrandLogo(null)}
+                            className="text-[10px] text-red-500 hover:underline ml-1"
+                          >
+                            Remove
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-bold text-gray-700 block mb-1">Standee Theme Color</label>
+                    <div className="flex items-center gap-2">
+                      {[
+                        { name: 'Fri Chicks Red', color: '#dc2626' },
+                        { name: 'Royal Blue', color: '#1d4ed8' },
+                        { name: 'Emerald Green', color: '#059669' },
+                        { name: 'Amber Gold', color: '#d97706' },
+                        { name: 'Luxury Charcoal', color: '#1f2937' },
+                      ].map((c) => (
+                        <button
+                          key={c.color}
+                          type="button"
+                          onClick={() => {
+                            setStandeeColor(c.color);
+                            setQrColor(c.color);
+                          }}
+                          style={{ backgroundColor: c.color }}
+                          className={`w-7 h-7 rounded-xl flex items-center justify-center transition-transform ${
+                            standeeColor === c.color ? 'scale-110 ring-2 ring-offset-2 ring-primary-500' : ''
+                          }`}
+                          title={c.name}
+                        >
+                          {standeeColor === c.color && <Check className="w-3.5 h-3.5 text-white" />}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
 
@@ -1357,54 +1925,81 @@ export default function DashboardPage() {
                   </p>
                 </div>
 
-                {/* Standee Preview Card */}
-                <div className="max-w-[260px] mx-auto p-4 rounded-2xl bg-gradient-to-b from-primary-600 to-primary-800 text-white shadow-xl">
-                  <div className="text-[10px] font-bold tracking-wider uppercase opacity-90 mb-1">Scan To Review Us</div>
-                  <div className="font-bold text-sm truncate mb-3">{newBusinessForm.selectedGoogleBranch || newBusinessForm.name}</div>
-                  
-                  <div className="bg-white p-3 rounded-xl shadow-inner inline-block">
-                    {createdBizQr ? (
-                      <img src={createdBizQr} alt="Standee QR" className="w-40 h-40 object-contain mx-auto" />
+                {/* Standee Preview Card with Brand Theme & Center Logo */}
+                <div
+                  style={{
+                    background: `linear-gradient(145deg, ${standeeColor}, ${adjustColorBrightness(standeeColor, -25)})`,
+                  }}
+                  className="max-w-[280px] mx-auto p-5 rounded-3xl text-white shadow-2xl text-center relative overflow-hidden"
+                >
+                  <div className="flex items-center justify-center gap-2 mb-2">
+                    {brandLogo ? (
+                      <img
+                        src={brandLogo}
+                        alt="Logo"
+                        className="w-10 h-10 rounded-full bg-white object-cover shadow-sm p-0.5 border border-white/50"
+                      />
                     ) : (
-                      <div className="w-40 h-40 flex items-center justify-center text-gray-400 text-xs">Generating QR...</div>
+                      <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-xs flex items-center justify-center text-sm font-black">
+                        {(newBusinessForm.selectedGoogleBranch || newBusinessForm.name || 'FC').slice(0, 2).toUpperCase()}
+                      </div>
+                    )}
+                    <div className="text-left min-w-0">
+                      <div className="font-extrabold text-sm leading-tight truncate">
+                        {newBusinessForm.selectedGoogleBranch || newBusinessForm.name}
+                      </div>
+                      <div className="text-[10px] opacity-85 uppercase tracking-wider font-semibold">
+                        Review Us On Google
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white p-3.5 rounded-2xl shadow-lg inline-block my-2 border border-white/20">
+                    {createdBizQr ? (
+                      <img src={createdBizQr} alt="Standee QR with Logo" className="w-44 h-44 object-contain mx-auto rounded-lg" />
+                    ) : (
+                      <div className="w-44 h-44 flex items-center justify-center text-gray-400 text-xs">Generating Standee QR...</div>
                     )}
                   </div>
 
-                  <div className="flex items-center justify-center gap-1 mt-3">
+                  <div className="flex items-center justify-center gap-1 mt-2">
                     {[1, 2, 3, 4, 5].map((s) => (
-                      <Star key={s} className="w-3.5 h-3.5 fill-warning-400 text-warning-400" />
+                      <Star key={s} className="w-4 h-4 fill-warning-400 text-warning-400" />
                     ))}
                   </div>
-                  <div className="text-[10px] opacity-80 mt-1">AI-Powered Review Assistant</div>
+                  <div className="text-xs font-bold text-white mt-1">Point Camera to Review</div>
+                  <div className="text-[10px] text-white/80 mt-0.5">⚡ AI-Powered Instant Feedback</div>
                 </div>
 
                 <div className="pt-2 flex flex-col sm:flex-row gap-2.5">
-                  {createdBizQr && (
-                    <a
-                      href={createdBizQr}
-                      download={`BizBoost-Standee-${(newBusinessForm.name || 'business').toLowerCase().replace(/\s+/g, '-')}.png`}
+                  {standeePosterUrl && (
+                    <button
+                      type="button"
+                      onClick={() => handleDownloadStandee(newBusinessForm.selectedGoogleBranch || newBusinessForm.name || 'Business')}
                       className="btn btn-primary flex-1 text-xs py-2.5 flex items-center justify-center gap-2"
                     >
                       <Download className="w-4 h-4" />
                       Download Standee PNG
+                    </button>
+                  )}
+                  {createdBizQr && (
+                    <a
+                      href={createdBizQr}
+                      download={`BizBoost-QR-${(newBusinessForm.name || 'business').toLowerCase().replace(/\s+/g, '-')}.png`}
+                      className="btn btn-secondary flex-1 text-xs py-2.5 flex items-center justify-center gap-2"
+                    >
+                      <Download className="w-4 h-4" />
+                      Download QR
                     </a>
                   )}
                   <button
                     type="button"
                     onClick={() => window.print()}
-                    className="btn btn-secondary flex-1 text-xs py-2.5 flex items-center justify-center gap-2"
-                  >
-                    <Printer className="w-4 h-4" />
-                    Print Standee
-                  </button>
-                  <a
-                    href={`/scan/${selectedBusinessId}`}
-                    target="_blank"
                     className="btn btn-outline flex-1 text-xs py-2.5 flex items-center justify-center gap-2"
                   >
-                    <ExternalLink className="w-4 h-4" />
-                    Test Customer Scan
-                  </a>
+                    <Printer className="w-4 h-4" />
+                    Print
+                  </button>
                 </div>
 
                 <button
