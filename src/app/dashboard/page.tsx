@@ -6,7 +6,7 @@ import {
   Users, Star, TrendingUp, Bell, LogOut, Plus, Eye, Phone,
   MapPin, Calendar, ChevronRight, ExternalLink, Download,
   CheckCircle, Shield, Sparkles, X, Check, Copy, RefreshCw,
-  Sliders, MessageCircle
+  Sliders, MessageCircle, Search, Loader2, Printer, Building2
 } from 'lucide-react';
 import Link from 'next/link';
 import { signOut, useSession } from 'next-auth/react';
@@ -35,10 +35,15 @@ export default function DashboardPage() {
     { id: 'lg-2', name: 'Lahori Grill & Cafe', location: 'Lahore, Pakistan', category: 'Cafe & Grill', reviews: 91, rating: 4.6, googlePlaceId: 'ChIJ5TCOcRaY5zsR65GLOXy9cmg' },
   ]);
 
-  // Add Business Modal Wizard State (Transcript Flow)
+  // Add Business Modal Wizard State (ReviewBro Live Google Search Flow)
   const [addBusinessStep, setAddBusinessStep] = useState(1);
   const [createdBizQr, setCreatedBizQr] = useState('');
   const [newKeywordInput, setNewKeywordInput] = useState('');
+  const [placesQuery, setPlacesQuery] = useState('');
+  const [placesLoading, setPlacesLoading] = useState(false);
+  const [placesResults, setPlacesResults] = useState<any[]>([]);
+  const [selectedPlace, setSelectedPlace] = useState<any | null>(null);
+  const [manualPlaceMode, setManualPlaceMode] = useState(false);
   const [newBusinessForm, setNewBusinessForm] = useState({
     name: '',
     phone: '',
@@ -48,6 +53,7 @@ export default function DashboardPage() {
     country: 'Pakistan',
     category: 'Retail Store & Wholesale',
     googlePlaceId: '',
+    googleReviewUrl: '',
     keywords: ['Best Quality', 'Helpful Staff', 'Affordable Pricing'],
   });
 
@@ -93,20 +99,102 @@ export default function DashboardPage() {
       .catch(err => console.warn('QR error:', err));
   }, [selectedBusinessId, qrColor]);
 
+  // Debounced Google Places Search (ReviewBro Feature)
+  useEffect(() => {
+    const trimmed = placesQuery.trim();
+    if (!trimmed || trimmed.length < 2) {
+      setPlacesResults([]);
+      setPlacesLoading(false);
+      return;
+    }
+
+    setPlacesLoading(true);
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/places/search?q=${encodeURIComponent(trimmed)}`);
+        const data = await res.json();
+        if (data?.results) {
+          setPlacesResults(data.results);
+        }
+      } catch (err) {
+        console.warn('Places search failed:', err);
+      } finally {
+        setPlacesLoading(false);
+      }
+    }, 280);
+
+    return () => clearTimeout(timer);
+  }, [placesQuery]);
+
+  const handleSelectGooglePlace = (place: any) => {
+    setSelectedPlace(place);
+    const cityName = place.city || 'Pune';
+    
+    // Dynamic high-converting Local SEO keywords tailored to category & city
+    let autoKeywords = ['Helpful Staff', 'Affordable Pricing', 'High Quality'];
+    const cat = (place.category || '').toLowerCase();
+    if (cat.includes('saree') || cat.includes('wholesale') || cat.includes('retail') || cat.includes('clothing')) {
+      autoKeywords = [`Best Sarees Shop in ${cityName}`, `Top Wholesale Saree in ${cityName}`, `Designer Bridal Sarees`, `Affordable Wholesale Rates`];
+    } else if (cat.includes('restaurant') || cat.includes('cafe') || cat.includes('biryani') || cat.includes('grill') || cat.includes('food')) {
+      autoKeywords = [`Best Food in ${cityName}`, `Top Family Restaurant in ${cityName}`, `Authentic Taste`, `Fast Service & Great Ambience`];
+    } else if (cat.includes('salon') || cat.includes('beauty') || cat.includes('spa')) {
+      autoKeywords = [`Best Salon in ${cityName}`, `Top Bridal Makeup`, `Professional Hair Stylist`, `Clean & Relaxing Ambience`];
+    } else if (cat.includes('clinic') || cat.includes('hospital') || cat.includes('healthcare') || cat.includes('dental')) {
+      autoKeywords = [`Best Clinic in ${cityName}`, `Top Specialist Doctor in ${cityName}`, `Trusted Healthcare Service`];
+    } else if (cat.includes('auto') || cat.includes('workshop')) {
+      autoKeywords = [`Best Car Workshop in ${cityName}`, `Reliable Auto Service in ${cityName}`, `Genuine Parts & Fast Repair`];
+    }
+
+    setNewBusinessForm(prev => ({
+      ...prev,
+      name: place.name,
+      selectedGoogleBranch: place.name,
+      city: place.city || '',
+      state: place.state || '',
+      country: place.country || 'India',
+      category: place.category || 'Retail Store & Wholesale',
+      googlePlaceId: place.placeId || '',
+      googleReviewUrl: place.googleReviewUrl || `https://search.google.com/local/writereview?placeid=${place.placeId}`,
+      keywords: autoKeywords,
+    }));
+  };
+
+  const openAddBusinessModal = () => {
+    setAddBusinessStep(1);
+    setPlacesQuery('');
+    setPlacesResults([]);
+    setSelectedPlace(null);
+    setManualPlaceMode(false);
+    setNewBusinessForm({
+      name: '',
+      phone: '',
+      selectedGoogleBranch: '',
+      city: '',
+      state: '',
+      country: 'Pakistan',
+      category: 'Retail Store & Wholesale',
+      googlePlaceId: '',
+      googleReviewUrl: '',
+      keywords: ['Best Quality', 'Helpful Staff', 'Affordable Pricing'],
+    });
+    setAddBusinessModal(true);
+  };
+
   // Handle Add Business (Transcript flow)
   const handleAddBusiness = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newBusinessForm.name) return;
+    const finalName = newBusinessForm.selectedGoogleBranch || newBusinessForm.name;
+    if (!finalName) return;
 
     const newId = `biz-${Date.now()}`;
     const fullLocation = [newBusinessForm.city, newBusinessForm.state, newBusinessForm.country].filter(Boolean).join(', ') || 'Pune, India';
     const newBiz = {
       id: newId,
-      name: newBusinessForm.selectedGoogleBranch || newBusinessForm.name,
+      name: finalName,
       location: fullLocation,
       category: newBusinessForm.category,
-      reviews: 0,
-      rating: 5.0,
+      reviews: selectedPlace?.userRatingsTotal || 45,
+      rating: selectedPlace?.rating || 4.9,
       googlePlaceId: newBusinessForm.googlePlaceId || 'ChIJN1t_tDeuEmsRUsoyG83frY4',
     };
 
@@ -268,7 +356,7 @@ export default function DashboardPage() {
               <span>Test Customer View</span>
             </Link>
             <button
-              onClick={() => setAddBusinessModal(true)}
+              onClick={openAddBusinessModal}
               className="btn btn-primary text-xs px-4 py-2 flex items-center gap-1.5 shadow-sm"
             >
               <Plus className="w-4 h-4" />
@@ -326,7 +414,7 @@ export default function DashboardPage() {
                 <div className="card border border-gray-100">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="font-bold text-gray-900 text-sm">Your Business Locations</h3>
-                    <button onClick={() => setAddBusinessModal(true)} className="text-xs text-primary-600 font-bold hover:underline">
+                    <button onClick={openAddBusinessModal} className="text-xs text-primary-600 font-bold hover:underline">
                       + Add Location
                     </button>
                   </div>
@@ -878,28 +966,210 @@ export default function DashboardPage() {
               </span>
             </div>
 
-            {/* STEP 1: Business Name, Phone & Google Business Profile Auto-Suggest */}
+            {/* STEP 1: Live Google Business Profile Autocomplete Search (ReviewBro Feature) */}
             {addBusinessStep === 1 && (
               <div className="space-y-4">
                 <div>
-                  <h3 className="text-lg font-bold text-gray-900">What is your business name?</h3>
-                  <p className="text-xs text-gray-500">Enter your business name and contact number to automatically sync your Google Business Profile.</p>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="p-1 rounded-md bg-blue-100 text-blue-700">
+                      <MapPin className="w-4 h-4 text-blue-600" />
+                    </span>
+                    <h3 className="text-lg font-bold text-gray-900">Search Your Business on Google Maps</h3>
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    Type your business or shop name to automatically connect your official Google Business Profile and sync reviews.
+                  </p>
                 </div>
 
-                <div>
-                  <label className="label text-xs">Business Name</label>
-                  <input
-                    type="text"
-                    value={newBusinessForm.name}
-                    onChange={(e) => setNewBusinessForm({ ...newBusinessForm, name: e.target.value })}
-                    placeholder="e.g. Hari Om Wholesale or Royal Spice"
-                    className="input text-sm bg-white text-gray-900"
-                    required
-                  />
+                {/* Google Places Live Search Box */}
+                <div className="space-y-1.5">
+                  <label className="label text-xs flex items-center justify-between">
+                    <span>Business Name / Google Listing</span>
+                    {placesLoading && (
+                      <span className="text-[11px] text-primary-600 flex items-center gap-1 font-medium">
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                        Searching Google Maps...
+                      </span>
+                    )}
+                  </label>
+
+                  <div className="relative">
+                    <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">
+                      <Search className="w-4 h-4" />
+                    </div>
+                    <input
+                      type="text"
+                      value={placesQuery}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setPlacesQuery(val);
+                        setNewBusinessForm(prev => ({ ...prev, name: val, selectedGoogleBranch: val }));
+                        if (selectedPlace && val !== selectedPlace.name) {
+                          setSelectedPlace(null);
+                        }
+                      }}
+                      placeholder="e.g. Hari Om Wholesale, Kababjees, or Karachi Biryani..."
+                      className="input pl-10 pr-10 text-sm bg-white text-gray-900"
+                      autoFocus
+                    />
+                    {placesQuery && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPlacesQuery('');
+                          setPlacesResults([]);
+                          setSelectedPlace(null);
+                          setNewBusinessForm(prev => ({ ...prev, name: '', selectedGoogleBranch: '' }));
+                        }}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 rounded-full"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
                 </div>
 
+                {/* Active Selected Google Listing Card */}
+                {selectedPlace && (
+                  <div className="p-3.5 bg-emerald-50 border border-emerald-300 rounded-xl space-y-2 animate-fade-in">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-start gap-2.5">
+                        <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center flex-shrink-0 mt-0.5">
+                          <CheckCircle className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold text-gray-900">{selectedPlace.name}</span>
+                            <span className="text-[10px] font-bold px-1.5 py-0.5 bg-emerald-100 text-emerald-800 rounded">
+                              Google Verified
+                            </span>
+                          </div>
+                          <div className="text-[11px] text-gray-600 mt-0.5">{selectedPlace.formattedAddress}</div>
+                          <div className="flex items-center gap-2 mt-1 text-[11px]">
+                            <span className="text-warning-600 font-bold flex items-center gap-0.5">
+                              ⭐ {selectedPlace.rating}
+                            </span>
+                            <span className="text-gray-400">·</span>
+                            <span className="text-gray-600 font-medium">{selectedPlace.userRatingsTotal} Google reviews</span>
+                            <span className="text-gray-400">·</span>
+                            <span className="text-primary-700 font-medium">{selectedPlace.category}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedPlace(null)}
+                        className="text-[11px] text-gray-500 hover:text-gray-800 underline"
+                      >
+                        Change
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Live Google Search Dropdown Results List */}
+                {!selectedPlace && placesResults.length > 0 && (
+                  <div className="space-y-2 pt-1 animate-fade-in max-h-64 overflow-y-auto pr-1">
+                    <div className="flex items-center justify-between text-[11px] text-gray-500 px-1">
+                      <span className="font-bold text-gray-700 flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                        Google Places Results ({placesResults.length})
+                      </span>
+                      <span>Click to link your profile</span>
+                    </div>
+
+                    {placesResults.map((place, idx) => {
+                      const isSelected = selectedPlace?.id === place.id || newBusinessForm.selectedGoogleBranch === place.name;
+                      return (
+                        <div
+                          key={place.id || idx}
+                          onClick={() => handleSelectGooglePlace(place)}
+                          className={`p-3 rounded-xl border-2 cursor-pointer transition-all flex items-center justify-between ${
+                            isSelected
+                              ? 'border-primary-600 bg-primary-50/70 shadow-sm'
+                              : 'border-gray-200 hover:border-primary-400 bg-white hover:bg-gray-50/80'
+                          }`}
+                        >
+                          <div className="flex items-start gap-2.5 min-w-0 pr-2">
+                            {/* Google Maps Pin Icon */}
+                            <div className="w-7 h-7 rounded-lg bg-red-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                              <MapPin className="w-4 h-4 text-red-600" />
+                            </div>
+                            <div className="min-w-0">
+                              <div className="text-xs font-bold text-gray-900 truncate">
+                                {place.name}
+                              </div>
+                              <div className="text-[11px] text-gray-500 truncate">
+                                {place.formattedAddress}
+                              </div>
+                              <div className="flex items-center gap-2 mt-0.5 text-[10px]">
+                                <span className="text-warning-600 font-bold">⭐ {place.rating}</span>
+                                <span className="text-gray-400">·</span>
+                                <span className="text-gray-500">{place.userRatingsTotal} reviews</span>
+                                <span className="text-gray-400">·</span>
+                                <span className="text-blue-600 font-medium">{place.category}</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex-shrink-0">
+                            {isSelected ? (
+                              <CheckCircle className="w-5 h-5 text-primary-600" />
+                            ) : (
+                              <span className="text-[11px] font-medium px-2.5 py-1 rounded-lg bg-gray-100 text-gray-700 hover:bg-primary-600 hover:text-white transition">
+                                Link
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Unlisted business manual entry toggle */}
+                <div className="pt-1">
+                  {!manualPlaceMode ? (
+                    <button
+                      type="button"
+                      onClick={() => setManualPlaceMode(true)}
+                      className="text-xs text-primary-600 hover:text-primary-800 font-medium hover:underline flex items-center gap-1"
+                    >
+                      + My business is unlisted or I want to paste my Google review link manually
+                    </button>
+                  ) : (
+                    <div className="p-3 bg-gray-50 border border-gray-200 rounded-xl space-y-3 animate-fade-in">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-gray-800">Manual Google Listing Setup</span>
+                        <button
+                          type="button"
+                          onClick={() => setManualPlaceMode(false)}
+                          className="text-[11px] text-gray-500 hover:text-gray-700"
+                        >
+                          Hide
+                        </button>
+                      </div>
+
+                      <div>
+                        <label className="label text-[11px]">Direct Google Review Link (Optional)</label>
+                        <input
+                          type="url"
+                          value={newBusinessForm.googleReviewUrl}
+                          onChange={(e) => setNewBusinessForm({ ...newBusinessForm, googleReviewUrl: e.target.value })}
+                          placeholder="https://search.google.com/local/writereview?placeid=..."
+                          className="input text-xs bg-white text-gray-900"
+                        />
+                        <p className="text-[10px] text-gray-400 mt-1">
+                          You can find this inside your Google Business Profile dashboard under "Ask for reviews".
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Manager Contact Number / WhatsApp for Negative Review Shield Alerts */}
                 <div>
-                  <label className="label text-xs">Contact Number / WhatsApp</label>
+                  <label className="label text-xs">Manager Phone / WhatsApp (For Review Alerts)</label>
                   <input
                     type="text"
                     value={newBusinessForm.phone}
@@ -907,101 +1177,33 @@ export default function DashboardPage() {
                     placeholder="e.g. 7744900878 or +92 300 1234567"
                     className="input text-sm bg-white text-gray-900"
                   />
-                </div>
-
-                {/* Live Google Business Profile Matches (from video) */}
-                <div className="pt-1">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-bold text-gray-800 flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-success-500 animate-pulse"></span>
-                      Google Business Profiles Found:
-                    </span>
-                    <span className="text-[10px] text-primary-600 font-medium">Select your verified branch</span>
-                  </div>
-
-                  <div className="space-y-2">
-                    {[
-                      {
-                        title: `${newBusinessForm.name || 'Hari Om Wholesale'} - Kalewadi Branch`,
-                        area: 'Pune, Maharashtra',
-                        rating: '4.9 ★ (142 Google reviews)',
-                        category: 'Retail Store & Saree Wholesale'
-                      },
-                      {
-                        title: `${newBusinessForm.name || 'Hari Om Wholesale'} - Chakan Market`,
-                        area: 'Chakan, Pune',
-                        rating: '4.7 ★ (89 Google reviews)',
-                        category: 'Wholesale Market Branch'
-                      },
-                      {
-                        title: `${newBusinessForm.name || 'Hari Om Wholesale'} - Commercial Center`,
-                        area: 'Central Pune',
-                        rating: '4.8 ★ (210 Google reviews)',
-                        category: 'Outlet 3'
-                      },
-                    ].map((match, idx) => (
-                      <div
-                        key={idx}
-                        onClick={() => setNewBusinessForm({
-                          ...newBusinessForm,
-                          selectedGoogleBranch: match.title,
-                          city: match.area.split(',')[0].trim(),
-                          state: match.area.split(',')[1]?.trim() || '',
-                        })}
-                        className={`p-3 rounded-xl border-2 cursor-pointer transition-all flex items-center justify-between ${
-                          newBusinessForm.selectedGoogleBranch === match.title
-                            ? 'border-primary-500 bg-primary-50/60 shadow-xs'
-                            : 'border-gray-200 hover:border-gray-300 bg-gray-50/50'
-                        }`}
-                      >
-                        <div>
-                          <div className="text-xs font-bold text-gray-900">{match.title}</div>
-                          <div className="text-[11px] text-gray-500">{match.area} · <span className="text-warning-600 font-bold">{match.rating}</span></div>
-                        </div>
-                        {newBusinessForm.selectedGoogleBranch === match.title ? (
-                          <CheckCircle className="w-5 h-5 text-primary-600 flex-shrink-0" />
-                        ) : (
-                          <span className="text-[11px] text-gray-400 font-medium px-2 py-0.5 rounded bg-white border border-gray-200">Select</span>
-                        )}
-                      </div>
-                    ))}
-
-                    <div
-                      onClick={() => setNewBusinessForm({
-                        ...newBusinessForm,
-                        selectedGoogleBranch: newBusinessForm.name || 'My New Business',
-                      })}
-                      className={`p-2.5 rounded-xl border cursor-pointer text-center text-xs transition ${
-                        newBusinessForm.selectedGoogleBranch === (newBusinessForm.name || 'My New Business')
-                          ? 'border-primary-500 bg-primary-50 font-bold text-primary-700'
-                          : 'border-dashed border-gray-300 text-gray-500 hover:bg-gray-50'
-                      }`}
-                    >
-                      + My business is unlisted on Google (Enter manually)
-                    </div>
-                  </div>
+                  <p className="text-[10px] text-gray-400 mt-1">
+                    When a customer gives 1-3 stars, an instant alert will be sent here so you can resolve it privately.
+                  </p>
                 </div>
 
                 <div className="pt-3 flex gap-3">
                   <button
                     type="button"
                     onClick={() => {
-                      if (!newBusinessForm.name) {
-                        setNewBusinessForm({ ...newBusinessForm, name: 'Hari Om Wholesale' });
-                      }
-                      if (!newBusinessForm.selectedGoogleBranch) {
+                      if (!newBusinessForm.name && !placesQuery) {
+                        setPlacesQuery('Hari Om Wholesale');
                         setNewBusinessForm(prev => ({
                           ...prev,
-                          name: prev.name || 'Hari Om Wholesale',
-                          selectedGoogleBranch: `${prev.name || 'Hari Om Wholesale'} - Kalewadi Branch`,
+                          name: 'Hari Om Wholesale - Kalewadi Branch',
+                          selectedGoogleBranch: 'Hari Om Wholesale - Kalewadi Branch',
                           city: 'Pune',
                           state: 'Maharashtra',
                           country: 'India',
+                          category: 'Retail Store & Saree Wholesale',
                         }));
                       }
                       setAddBusinessStep(2);
                     }}
-                    className="btn btn-primary flex-1 text-xs py-3"
+                    disabled={!placesQuery && !newBusinessForm.name}
+                    className={`btn btn-primary flex-1 text-xs py-3 ${
+                      !placesQuery && !newBusinessForm.name ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
                   >
                     Continue to Category & SEO Keywords →
                   </button>
@@ -1179,17 +1381,25 @@ export default function DashboardPage() {
                   {createdBizQr && (
                     <a
                       href={createdBizQr}
-                      download={`BizBoost-QR-${(newBusinessForm.name || 'business').toLowerCase().replace(/\s+/g, '-')}.png`}
+                      download={`BizBoost-Standee-${(newBusinessForm.name || 'business').toLowerCase().replace(/\s+/g, '-')}.png`}
                       className="btn btn-primary flex-1 text-xs py-2.5 flex items-center justify-center gap-2"
                     >
                       <Download className="w-4 h-4" />
                       Download Standee PNG
                     </a>
                   )}
+                  <button
+                    type="button"
+                    onClick={() => window.print()}
+                    className="btn btn-secondary flex-1 text-xs py-2.5 flex items-center justify-center gap-2"
+                  >
+                    <Printer className="w-4 h-4" />
+                    Print Standee
+                  </button>
                   <a
                     href={`/scan/${selectedBusinessId}`}
                     target="_blank"
-                    className="btn btn-secondary flex-1 text-xs py-2.5 flex items-center justify-center gap-2"
+                    className="btn btn-outline flex-1 text-xs py-2.5 flex items-center justify-center gap-2"
                   >
                     <ExternalLink className="w-4 h-4" />
                     Test Customer Scan
