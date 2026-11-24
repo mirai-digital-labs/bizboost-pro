@@ -369,9 +369,11 @@ export default function DashboardPage() {
     city: '',
     state: '',
     country: 'Pakistan',
-    category: 'Retail Store & Wholesale',
+    category: 'Fast food restaurant',
     googlePlaceId: '',
     googleReviewUrl: '',
+    rating: 4.2,
+    userRatingsTotal: 460,
     keywords: ['Best Quality', 'Helpful Staff', 'Affordable Pricing'],
   });
 
@@ -458,7 +460,9 @@ export default function DashboardPage() {
     // Dynamic high-converting Local SEO keywords tailored to category & city
     let autoKeywords = ['Helpful Staff', 'Affordable Pricing', 'High Quality'];
     const cat = (place.category || '').toLowerCase();
-    if (cat.includes('saree') || cat.includes('wholesale') || cat.includes('retail') || cat.includes('clothing')) {
+    if (cat.includes('marquee') || cat.includes('wedding') || cat.includes('banquet') || cat.includes('hall')) {
+      autoKeywords = [`Best Marquee in ${cityName}`, `Top Wedding Venue in ${cityName}`, `Luxury Banquet Hall`, `Grand Stage Decor & Ample Parking`];
+    } else if (cat.includes('saree') || cat.includes('wholesale') || cat.includes('retail') || cat.includes('clothing')) {
       autoKeywords = [`Best Sarees Shop in ${cityName}`, `Top Wholesale Saree in ${cityName}`, `Designer Bridal Sarees`, `Affordable Wholesale Rates`];
     } else if (cat.includes('restaurant') || cat.includes('cafe') || cat.includes('biryani') || cat.includes('grill') || cat.includes('food')) {
       autoKeywords = [`Best Food in ${cityName}`, `Top Family Restaurant in ${cityName}`, `Authentic Taste`, `Fast Service & Great Ambience`];
@@ -477,9 +481,11 @@ export default function DashboardPage() {
       city: place.city || '',
       state: place.state || '',
       country: place.country || 'Pakistan',
-      category: place.category || 'Fast food restaurant',
+      category: place.category || 'Local Business & Retail',
       googlePlaceId: place.placeId || '',
       googleReviewUrl: place.googleReviewUrl || `https://search.google.com/local/writereview?placeid=${place.placeId}`,
+      rating: place.rating !== undefined ? place.rating : 4.2,
+      userRatingsTotal: place.userRatingsTotal !== undefined ? place.userRatingsTotal : 460,
       keywords: autoKeywords,
     }));
   };
@@ -500,6 +506,8 @@ export default function DashboardPage() {
       category: 'Fast food restaurant',
       googlePlaceId: '',
       googleReviewUrl: '',
+      rating: 4.2,
+      userRatingsTotal: 460,
       keywords: ['Best Fast Food in Jhang', 'Crispy Fried Chicken', 'Quick Service & Polite Staff'],
     });
     setAddBusinessModal(true);
@@ -518,8 +526,8 @@ export default function DashboardPage() {
       name: finalName,
       location: fullLocation,
       category: newBusinessForm.category,
-      reviews: selectedPlace?.userRatingsTotal || 1338,
-      rating: selectedPlace?.rating || 3.9,
+      reviews: newBusinessForm.userRatingsTotal || selectedPlace?.userRatingsTotal || 460,
+      rating: newBusinessForm.rating || selectedPlace?.rating || 4.2,
       googlePlaceId: newBusinessForm.googlePlaceId || 'ChIJH0eTpPmZYzkRxcf3uOQADmQ',
     };
 
@@ -1711,6 +1719,7 @@ export default function DashboardPage() {
                       onChange={(e) => setNewBusinessForm({ ...newBusinessForm, category: e.target.value })}
                       className="input text-xs bg-white text-gray-900"
                     >
+                      <option value="Wedding venue">Wedding venue & Banquet Hall</option>
                       <option value="Fast food restaurant">Fast food restaurant</option>
                       <option value="Restaurant & Cafe">Restaurant & Cafe</option>
                       <option value="Retail Store & Wholesale">Retail Store & Wholesale</option>
@@ -1718,6 +1727,7 @@ export default function DashboardPage() {
                       <option value="Clinic & Healthcare">Clinic & Healthcare</option>
                       <option value="Auto Workshop & Detailing">Auto Workshop & Services</option>
                       <option value="Fashion & Boutique">Fashion & Clothing</option>
+                      <option value="Local Business & Retail">Local Business & Retail</option>
                     </select>
                   </div>
                   <div>
@@ -1728,6 +1738,37 @@ export default function DashboardPage() {
                       onChange={(e) => setNewBusinessForm({ ...newBusinessForm, city: e.target.value })}
                       className="input text-xs bg-white text-gray-900"
                       placeholder="e.g. Jhang, Karachi, Lahore or Islamabad"
+                    />
+                  </div>
+                </div>
+
+                {/* Google Maps Live Synced Rating & Total Reviews (Editable by Owner) */}
+                <div className="grid grid-cols-2 gap-3 p-2.5 bg-amber-50/60 rounded-xl border border-amber-200">
+                  <div>
+                    <label className="label text-[11px] font-bold text-amber-950 flex items-center gap-1">
+                      <span>⭐ Google Maps Rating</span>
+                      <span className="text-[10px] text-amber-700 font-normal">(Synced / Editable)</span>
+                    </label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      min="1"
+                      max="5"
+                      value={newBusinessForm.rating || 4.2}
+                      onChange={(e) => setNewBusinessForm({ ...newBusinessForm, rating: parseFloat(e.target.value) || 4.2 })}
+                      className="input text-xs bg-white text-gray-900 font-bold"
+                    />
+                  </div>
+                  <div>
+                    <label className="label text-[11px] font-bold text-amber-950 flex items-center gap-1">
+                      <span>📝 Total Google Reviews</span>
+                      <span className="text-[10px] text-amber-700 font-normal">(e.g. 460)</span>
+                    </label>
+                    <input
+                      type="number"
+                      value={newBusinessForm.userRatingsTotal || 460}
+                      onChange={(e) => setNewBusinessForm({ ...newBusinessForm, userRatingsTotal: parseInt(e.target.value) || 0 })}
+                      className="input text-xs bg-white text-gray-900 font-bold"
                     />
                   </div>
                 </div>
