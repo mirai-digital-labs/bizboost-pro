@@ -70,8 +70,8 @@ export default function DashboardPage() {
 
   // Settings State & Local SEO Keyword Training (from transcript)
   const [trainedKeywords, setTrainedKeywords] = useState<string[]>([
-    'Best Sarees Shop in Pune',
-    'Best Wholesale Saree in Pune',
+    'Best Fast Food in Jhang',
+    'Crispy Fried Chicken',
     'Best Biryani in Karachi',
     'Top Rated Quality Products'
   ]);
@@ -151,8 +151,8 @@ export default function DashboardPage() {
       selectedGoogleBranch: place.name,
       city: place.city || '',
       state: place.state || '',
-      country: place.country || 'India',
-      category: place.category || 'Retail Store & Wholesale',
+      country: place.country || 'Pakistan',
+      category: place.category || 'Fast food restaurant',
       googlePlaceId: place.placeId || '',
       googleReviewUrl: place.googleReviewUrl || `https://search.google.com/local/writereview?placeid=${place.placeId}`,
       keywords: autoKeywords,
@@ -172,10 +172,10 @@ export default function DashboardPage() {
       city: '',
       state: '',
       country: 'Pakistan',
-      category: 'Retail Store & Wholesale',
+      category: 'Fast food restaurant',
       googlePlaceId: '',
       googleReviewUrl: '',
-      keywords: ['Best Quality', 'Helpful Staff', 'Affordable Pricing'],
+      keywords: ['Best Fast Food in Jhang', 'Crispy Fried Chicken', 'Quick Service & Polite Staff'],
     });
     setAddBusinessModal(true);
   };
@@ -187,15 +187,15 @@ export default function DashboardPage() {
     if (!finalName) return;
 
     const newId = `biz-${Date.now()}`;
-    const fullLocation = [newBusinessForm.city, newBusinessForm.state, newBusinessForm.country].filter(Boolean).join(', ') || 'Pune, India';
+    const fullLocation = [newBusinessForm.city, newBusinessForm.state, newBusinessForm.country].filter(Boolean).join(', ') || 'Jhang, Punjab, Pakistan';
     const newBiz = {
       id: newId,
       name: finalName,
       location: fullLocation,
       category: newBusinessForm.category,
-      reviews: selectedPlace?.userRatingsTotal || 45,
-      rating: selectedPlace?.rating || 4.9,
-      googlePlaceId: newBusinessForm.googlePlaceId || 'ChIJN1t_tDeuEmsRUsoyG83frY4',
+      reviews: selectedPlace?.userRatingsTotal || 1338,
+      rating: selectedPlace?.rating || 3.9,
+      googlePlaceId: newBusinessForm.googlePlaceId || 'ChIJH0eTpPmZYzkRxcf3uOQADmQ',
     };
 
     setBusinesses([newBiz, ...businesses]);
@@ -841,7 +841,7 @@ export default function DashboardPage() {
                     <label className="text-xs font-bold text-gray-900">Local SEO Keywords Training</label>
                   </div>
                   <p className="text-[11px] text-gray-600 mb-3">
-                    Train the AI with your target local keywords (e.g. <em>"Best Sarees Shop in Pune"</em>, <em>"Best Biryani in Karachi"</em>). When customer scans the QR, the AI naturally weaves these keywords into their Google reviews to boost your Google 3-Pack Maps ranking!
+                    Train the AI with your target local keywords (e.g. <em>"Best Fast Food in Jhang"</em>, <em>"Best Biryani in Karachi"</em>). When customer scans the QR, the AI naturally weaves these keywords into their Google reviews to boost your Google 3-Pack Maps ranking!
                   </p>
                   
                   <div className="flex flex-wrap gap-2 mb-3">
@@ -873,7 +873,7 @@ export default function DashboardPage() {
                           setNewKeywordInput('');
                         }
                       }}
-                      placeholder="Type keyword & press Enter (e.g. Best Sarees Shop in Pune)"
+                      placeholder="Type keyword & press Enter (e.g. Best Fast Food in Jhang)"
                       className="input text-xs bg-white text-gray-900 flex-1"
                     />
                     <button
@@ -1008,7 +1008,7 @@ export default function DashboardPage() {
                           setSelectedPlace(null);
                         }
                       }}
-                      placeholder="e.g. Hari Om Wholesale, Kababjees, or Karachi Biryani..."
+                      placeholder="e.g. Fri Chicks Jhang, Kababjees, Savour Foods, or Al Rehman Biryani..."
                       className="input pl-10 pr-10 text-sm bg-white text-gray-900"
                       autoFocus
                     />
@@ -1174,7 +1174,7 @@ export default function DashboardPage() {
                     type="text"
                     value={newBusinessForm.phone}
                     onChange={(e) => setNewBusinessForm({ ...newBusinessForm, phone: e.target.value })}
-                    placeholder="e.g. 7744900878 or +92 300 1234567"
+                    placeholder="e.g. +92 300 1234567 or 0321 9876543"
                     className="input text-sm bg-white text-gray-900"
                   />
                   <p className="text-[10px] text-gray-400 mt-1">
@@ -1187,15 +1187,15 @@ export default function DashboardPage() {
                     type="button"
                     onClick={() => {
                       if (!newBusinessForm.name && !placesQuery) {
-                        setPlacesQuery('Hari Om Wholesale');
+                        setPlacesQuery('Fri Chicks Jhang');
                         setNewBusinessForm(prev => ({
                           ...prev,
-                          name: 'Hari Om Wholesale - Kalewadi Branch',
-                          selectedGoogleBranch: 'Hari Om Wholesale - Kalewadi Branch',
-                          city: 'Pune',
-                          state: 'Maharashtra',
-                          country: 'India',
-                          category: 'Retail Store & Saree Wholesale',
+                          name: 'Fri Chicks Jhang',
+                          selectedGoogleBranch: 'Fri Chicks Jhang',
+                          city: 'Jhang',
+                          state: 'Punjab',
+                          country: 'Pakistan',
+                          category: 'Fast food restaurant',
                         }));
                       }
                       setAddBusinessStep(2);
@@ -1241,8 +1241,9 @@ export default function DashboardPage() {
                       onChange={(e) => setNewBusinessForm({ ...newBusinessForm, category: e.target.value })}
                       className="input text-xs bg-white text-gray-900"
                     >
-                      <option value="Retail Store & Saree Wholesale">Retail Store & Saree Wholesale</option>
+                      <option value="Fast food restaurant">Fast food restaurant</option>
                       <option value="Restaurant & Cafe">Restaurant & Cafe</option>
+                      <option value="Retail Store & Wholesale">Retail Store & Wholesale</option>
                       <option value="Salon & Beauty">Salon, Spa & Beauty</option>
                       <option value="Clinic & Healthcare">Clinic & Healthcare</option>
                       <option value="Auto Workshop & Detailing">Auto Workshop & Services</option>
@@ -1253,10 +1254,10 @@ export default function DashboardPage() {
                     <label className="label text-xs">City / Area</label>
                     <input
                       type="text"
-                      value={newBusinessForm.city || 'Pune'}
+                      value={newBusinessForm.city || 'Jhang'}
                       onChange={(e) => setNewBusinessForm({ ...newBusinessForm, city: e.target.value })}
                       className="input text-xs bg-white text-gray-900"
-                      placeholder="e.g. Pune or Karachi"
+                      placeholder="e.g. Jhang, Karachi, Lahore or Islamabad"
                     />
                   </div>
                 </div>
@@ -1306,7 +1307,7 @@ export default function DashboardPage() {
                           setNewKeywordInput('');
                         }
                       }}
-                      placeholder="e.g. Best Sarees Shop in Pune"
+                      placeholder="e.g. Best Fast Food in Jhang"
                       className="input text-xs bg-white text-gray-900 flex-1"
                     />
                     <button

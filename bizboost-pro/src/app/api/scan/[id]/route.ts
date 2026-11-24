@@ -17,10 +17,10 @@ const KNOWN_BUSINESSES: Record<string, any> = {
     reviewThreshold: 3,
   },
   'demo': {
-    name: 'Hari Om Wholesale - Kalewadi Branch',
-    type: 'Retail Store & Saree Wholesale',
-    googlePlaceId: 'ChIJN1t_tDeuEmsRUsoyG83frY4',
-    googleReviewUrl: 'https://search.google.com/local/writereview?placeid=ChIJN1t_tDeuEmsRUsoyG83frY4',
+    name: 'Fri Chicks Jhang',
+    type: 'Fast food restaurant',
+    googlePlaceId: 'ChIJH0eTpPmZYzkRxcf3uOQADmQ',
+    googleReviewUrl: 'https://search.google.com/local/writereview?placeid=ChIJH0eTpPmZYzkRxcf3uOQADmQ',
     reviewThreshold: 3,
   },
 };
@@ -83,10 +83,10 @@ export async function GET(
       success: true,
       business: {
         id: businessId,
-        name: 'Hari Om Wholesale - Kalewadi Branch',
-        type: 'Retail Store & Saree Wholesale',
+        name: 'Fri Chicks Jhang',
+        type: 'Fast food restaurant',
         reviewThreshold: 3,
-        googleReviewUrl: `https://search.google.com/local/writereview?placeid=ChIJN1t_tDeuEmsRUsoyG83frY4`,
+        googleReviewUrl: `https://search.google.com/local/writereview?placeid=ChIJH0eTpPmZYzkRxcf3uOQADmQ`,
       },
     });
   } catch (error) {
