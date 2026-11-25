@@ -12,6 +12,8 @@ export interface PlaceResult {
   rating: number;
   userRatingsTotal: number;
   googleReviewUrl: string;
+  phone?: string;
+  source?: 'google_places' | 'curated' | 'osm' | 'suggest';
 }
 
 // Curated verified database with exact Google Maps data (Rating, Total Reviews, Address, Place ID)
@@ -510,8 +512,78 @@ export async function GET(request: NextRequest) {
     const normQuery = normalizeQuery(query);
     const results: PlaceResult[] = [];
     const seenNames = new Set<string>();
+    const googlePlacesKey = process.env.GOOGLE_PLACES_API_KEY || '';
 
-    // 1. Check curated high-priority database first with exact real Google Maps data
+    // 0. Live Worldwide Google Places API (when GOOGLE_PLACES_API_KEY is configured)
+    if (googlePlacesKey) {
+      try {
+        const textSearchUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&key=${encodeURIComponent(googlePlacesKey)}`;
+        const gRes = await fetch(textSearchUrl, { next: { revalidate: 30 } });
+        if (gRes.ok) {
+          const gData = await gRes.json();
+          const candidates = Array.isArray(gData.results) ? gData.results.slice(0, 6) : [];
+
+          const detailedPlaces = await Promise.all(
+            candidates.map(async (item: any) => {
+              let officialPhone = '';
+              let city = '';
+              let state = '';
+              let country = '';
+
+              try {
+                const detailUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${encodeURIComponent(item.place_id)}&fields=formatted_phone_number,international_phone_number,address_components,types&key=${encodeURIComponent(googlePlacesKey)}`;
+                const dRes = await fetch(detailUrl, { next: { revalidate: 60 } });
+                if (dRes.ok) {
+                  const dData = await dRes.json();
+                  const detail = dData.result || {};
+                  officialPhone = detail.international_phone_number || detail.formatted_phone_number || '';
+                  if (Array.isArray(detail.address_components)) {
+                    for (const comp of detail.address_components) {
+                      if (comp.types?.includes('locality')) city = comp.long_name;
+                      if (comp.types?.includes('administrative_area_level_1')) state = comp.long_name;
+                      if (comp.types?.includes('country')) country = comp.long_name;
+                    }
+                  }
+                }
+              } catch (detailErr) {
+                console.warn('Google Place Details lookup skipped:', detailErr);
+              }
+
+              const addressParts = (item.formatted_address || '').split(',').map((s: string) => s.trim());
+              if (!country && addressParts.length > 0) country = addressParts[addressParts.length - 1];
+              if (!city && addressParts.length > 1) city = addressParts[Math.max(0, addressParts.length - 3)] || '';
+
+              return {
+                id: item.place_id,
+                placeId: item.place_id,
+                name: item.name,
+                formattedAddress: item.formatted_address || '',
+                city: city || 'City',
+                state,
+                country: country || 'Global',
+                category: deduceCategory((item.types || []).join(' '), item.name || ''),
+                rating: typeof item.rating === 'number' ? item.rating : 0,
+                userRatingsTotal: typeof item.user_ratings_total === 'number' ? item.user_ratings_total : 0,
+                googleReviewUrl: `https://search.google.com/local/writereview?placeid=${encodeURIComponent(item.place_id)}`,
+                phone: officialPhone || undefined,
+                source: 'google_places' as const,
+              };
+            })
+          );
+
+          for (const p of detailedPlaces) {
+            if (!seenNames.has(p.name.toLowerCase())) {
+              results.push(p);
+              seenNames.add(p.name.toLowerCase());
+            }
+          }
+        }
+      } catch (gErr) {
+        console.warn('Google Places API lookup error:', gErr);
+      }
+    }
+
+    // 1. Check curated high-priority database next with exact real Google Maps data
     for (const [key, items] of Object.entries(CURATED_BUSINESSES)) {
       const normKey = normalizeQuery(key);
       if (normQuery.includes(normKey) || normKey.includes(normQuery)) {
@@ -597,9 +669,9 @@ export async function GET(request: NextRequest) {
       console.warn('Google suggest lookup skipped:', suggestErr);
     }
 
-    // 3. Query OpenStreetMap Nominatim for real street addresses and geolocation
+    // 3. Query OpenStreetMap Nominatim worldwide for real street addresses and geolocation
     try {
-      const nominatimUrl = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=4&countrycodes=pk&q=${encodeURIComponent(query)}`;
+      const nominatimUrl = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=5&q=${encodeURIComponent(query)}`;
       const osmRes = await fetch(nominatimUrl, {
         headers: {
           'User-Agent': 'BizBoostProApp/1.0 (support@bizboost-pro.vercel.app)',
@@ -614,7 +686,7 @@ export async function GET(request: NextRequest) {
             const address = item.address || {};
             const city = address.city || address.town || address.suburb || address.state_district || 'City';
             const state = address.state || '';
-            const country = address.country || 'Pakistan';
+            const country = address.country || 'Global';
             const amenity = item.class === 'amenity' ? item.type : '';
             const category = deduceCategory(amenity, itemName);
             const pId = `osm_${item.osm_type || 'node'}_${item.osm_id || item.place_id}`;
@@ -631,8 +703,9 @@ export async function GET(request: NextRequest) {
                 country,
                 category,
                 rating: 4.2,
-                userRatingsTotal: 210,
+                userRatingsTotal: 150,
                 googleReviewUrl: `https://search.google.com/local/writereview?placeid=${encodeURIComponent(pId)}`,
+                source: 'osm',
               });
               seenNames.add(displayName.toLowerCase());
             }
@@ -652,19 +725,21 @@ export async function GET(request: NextRequest) {
         id: pId,
         placeId: pId,
         name: titleQuery,
-        formattedAddress: `${titleQuery}, Verified Business Profile`,
-        city: 'Pakistan',
+        formattedAddress: `${titleQuery}, Global Business Profile`,
+        city: 'City',
         state: '',
-        country: 'Pakistan',
+        country: 'Global',
         category,
         rating: 4.2,
         userRatingsTotal: 120,
         googleReviewUrl: `https://search.google.com/local/writereview?placeid=${encodeURIComponent(pId)}`,
+        source: 'suggest',
       });
     }
 
     return NextResponse.json({
       query,
+      googlePlacesApiActive: Boolean(googlePlacesKey),
       results: results.slice(0, 8),
     });
   } catch (error: any) {

@@ -362,6 +362,7 @@ export default function DashboardPage() {
   const [placesResults, setPlacesResults] = useState<any[]>([]);
   const [selectedPlace, setSelectedPlace] = useState<any | null>(null);
   const [manualPlaceMode, setManualPlaceMode] = useState(false);
+  const [step1Error, setStep1Error] = useState('');
   const [newBusinessForm, setNewBusinessForm] = useState({
     name: '',
     phone: '',
@@ -1631,16 +1632,28 @@ export default function DashboardPage() {
                   </div>
 
                   <div>
-                    <label className="label text-xs">Manager WhatsApp / Phone (For Private Negative Review Alerts)</label>
+                    <label className="label text-xs flex items-center justify-between">
+                      <span>Official Business Phone / WhatsApp (Verified Match)</span>
+                      {selectedPlace?.phone && (
+                        <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">
+                          Google Profile Phone Linked
+                        </span>
+                      )}
+                    </label>
                     <input
                       type="text"
                       value={newBusinessForm.phone}
-                      onChange={(e) => setNewBusinessForm({ ...newBusinessForm, phone: e.target.value })}
+                      onChange={(e) => {
+                        setNewBusinessForm({ ...newBusinessForm, phone: e.target.value });
+                        if (step1Error) setStep1Error('');
+                      }}
                       placeholder="e.g. +92 300 1234567 or 0321 9876543"
                       className="input text-sm bg-white text-gray-900"
                     />
                     <p className="text-[10px] text-gray-500 mt-1">
-                      When a customer gives 1-3 stars, confidential alerts are routed strictly to this verified manager number.
+                      {selectedPlace?.phone
+                        ? 'Strict Check Active: Enter the exact phone number registered on this Google Business Profile.'
+                        : 'Requires a valid 10+ digit official business number. (Live Google Profile phone/email matching activates with Google Places API & Google OAuth).'}
                     </p>
                   </div>
 
@@ -1648,7 +1661,10 @@ export default function DashboardPage() {
                     <input
                       type="checkbox"
                       checked={ownerVerified}
-                      onChange={(e) => setOwnerVerified(e.target.checked)}
+                      onChange={(e) => {
+                        setOwnerVerified(e.target.checked);
+                        if (step1Error) setStep1Error('');
+                      }}
                       className="mt-0.5 rounded border-gray-300 text-primary-600 focus:ring-primary-500 w-4 h-4"
                     />
                     <div className="text-[11px] text-gray-700 leading-snug">
@@ -1658,24 +1674,36 @@ export default function DashboardPage() {
                       </div>
                     </div>
                   </label>
+
+                  {step1Error && (
+                    <div className="p-2.5 bg-red-50 border border-red-200 rounded-lg text-[11px] font-medium text-red-700 flex items-start gap-1.5">
+                      <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
+                      <span>{step1Error}</span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="pt-3 flex gap-3">
                   <button
                     type="button"
                     onClick={() => {
-                      if (!newBusinessForm.name && !placesQuery) {
-                        setPlacesQuery('Fri Chicks Jhang');
-                        setNewBusinessForm(prev => ({
-                          ...prev,
-                          name: 'Fri Chicks Jhang',
-                          selectedGoogleBranch: 'Fri Chicks Jhang',
-                          city: 'Jhang',
-                          state: 'Punjab',
-                          country: 'Pakistan',
-                          category: 'Fast food restaurant',
-                        }));
+                      const enteredDigits = (newBusinessForm.phone || '').replace(/\D/g, '');
+                      if (enteredDigits.length < 10) {
+                        setStep1Error('Please enter a valid 10+ digit official phone number attached to this business.');
+                        return;
                       }
+                      if (selectedPlace?.phone) {
+                        const officialDigits = selectedPlace.phone.replace(/\D/g, '');
+                        if (officialDigits.length >= 7 && enteredDigits.slice(-9) !== officialDigits.slice(-9)) {
+                          setStep1Error('Verification Failed: Entered phone number does not match the official number on this Google Business Profile.');
+                          return;
+                        }
+                      }
+                      if (!ownerVerified) {
+                        setStep1Error('Please check the authorization box to confirm you are the owner/manager.');
+                        return;
+                      }
+                      setStep1Error('');
                       setAddBusinessStep(2);
                     }}
                     disabled={!placesQuery && !newBusinessForm.name}
